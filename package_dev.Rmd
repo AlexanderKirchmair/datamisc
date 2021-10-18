@@ -1,0 +1,110 @@
+---
+title: "package_dev"
+---
+
+```{r setup, include=FALSE}
+
+library(devtools)
+library(testthat)
+
+```
+
+
+
+https://r-pkgs.org/
+
+
+```{r package setup}
+
+# create_package("newfolder") # File > New Project... > ...
+use_mit_license()
+use_readme_rmd()
+use_pipe()
+
+```
+
+```{r package startup}
+
+load_all()
+
+```
+
+
+
+```{r}
+
+use_package("ggplot2")
+use_package("ggrepel")
+use_package("rlang")
+use_package("scales")
+use_package("colourpicker")
+use_package("prismatic")
+use_package("rlang")
+use_package("survival")
+use_package("survminer")
+use_package("openxlsx")
+use_package("ComplexHeatmap")
+use_package("circlize")
+use_package("dendsort")
+use_package("paletteer")
+use_package("BiocParallel")
+use_package("patchwork")
+
+```
+
+```{r}
+
+# use_r("heatmap")
+
+```
+
+
+
+
+
+
+```{r}
+
+# Code > Insert Roxygen Skeleton
+document()
+
+```
+
+
+
+
+```{r}
+
+lapply(list.files("R/", pattern = ".R"), use_test)
+
+```
+
+
+
+
+
+
+```{r check}
+
+# test()
+check() # or Build > Check Package
+
+```
+
+```{r}
+
+usethis::use_build_ignore("package_dev.Rmd")
+usethis::use_build_ignore("desktop.ini")
+
+```
+
+
+```{r}
+
+install()
+
+```
+
+
+
+

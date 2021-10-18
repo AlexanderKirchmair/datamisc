@@ -1,0 +1,40 @@
+Package: datamisc
+Title: Various functions for data handling.
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Alexander",
+           family = "Kirchmair",
+           role = c("aut", "cre"),
+           email = "alex.kirchmair@gmail.com",
+           comment = c(ORCID = "0000-0003-2284-7424"))
+Description: Various functions for data handling.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Imports: 
+    magrittr,
+    dplyr,
+    ggplot2,
+    matrixStats,
+    ggrepel,
+    rlang,
+    scales,
+    colourpicker,
+    prismatic,
+    survival,
+    survminer,
+    openxlsx,
+    BiocParallel,
+    ComplexHeatmap,
+    circlize,
+    dendsort,
+    paletteer,
+    patchwork
+VignetteBuilder: knitr
