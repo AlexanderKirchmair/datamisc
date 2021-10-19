@@ -98,6 +98,11 @@ usethis::use_build_ignore("desktop.ini")
 
 ```
 
+```{r}
+
+devtools::build_readme()
+
+```
 
 ```{r}
 
