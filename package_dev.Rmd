@@ -54,7 +54,7 @@ use_package("patchwork")
 
 ```{r}
 
-# use_r("heatmap")
+use_r("survival_functions.R")
 
 ```
 
