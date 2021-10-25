@@ -14,7 +14,7 @@ library(testthat)
 https://r-pkgs.org/
 
 
-```{r package setup}
+```{r initial setup}
 
 # create_package("newfolder") # File > New Project... > ...
 use_mit_license()
@@ -31,6 +31,7 @@ load_all()
 
 
 
+Dependencies
 ```{r}
 
 use_package("ggplot2")
@@ -46,12 +47,14 @@ use_package("openxlsx")
 use_package("ComplexHeatmap")
 use_package("circlize")
 use_package("dendsort")
+use_package("ggdendro")
 use_package("paletteer")
 use_package("BiocParallel")
 use_package("patchwork")
 
 ```
 
+Add R scripts
 ```{r}
 
 use_r("survival_functions.R")
@@ -59,10 +62,7 @@ use_r("survival_functions.R")
 ```
 
 
-
-
-
-
+Update documentation
 ```{r}
 
 # Code > Insert Roxygen Skeleton
@@ -72,7 +72,7 @@ document()
 
 
 
-
+Add unit tests
 ```{r}
 
 lapply(list.files("R/", pattern = ".R"), use_test)
@@ -80,16 +80,14 @@ lapply(list.files("R/", pattern = ".R"), use_test)
 ```
 
 
-
-
-
-
+Test/check
 ```{r check}
 
 # test()
 check() # or Build > Check Package
 
 ```
+
 
 ```{r}
 
@@ -104,6 +102,8 @@ devtools::build_readme()
 
 ```
 
+
+Install the package
 ```{r}
 
 install()
