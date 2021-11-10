@@ -18,6 +18,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+biocViews:
 Imports: 
     magrittr,
     dplyr,
@@ -36,5 +37,11 @@ Imports:
     circlize,
     dendsort,
     paletteer,
-    patchwork
+    patchwork,
+    DESeq2,
+    ggdendro,
+    limma,
+    edgeR,
+    GSVA,
+    fgsea
 VignetteBuilder: knitr

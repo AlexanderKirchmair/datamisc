@@ -372,6 +372,31 @@ rounddown <- function(x, digits = 0, ...){
 
 
 
+#' Adjust P-values for Multiple Comparisons
+#'
+#' @description
+#' Adjust a vector or matrix of p-values derived from the same data for multiple testing.
+#'
+#' @param p vector or matrix of p-values
+#' @param ...
+#'
+#' @inheritParam stats::p.adjust
+#'
+#' @return
+#' @export
+#'
+padjust <- function(p, method = p.adjust.methods, ...){
+  porig <- p
+  is.mat <- !is.null(dim(porig))
+  if (is.mat) p <- as.vector(data.matrix(p))
+  padj <- stats::p.adjust(p, method = method, ...)
+  if (is.mat) padj <- matrix(padj, nrow = nrow(porig), dimnames = dimnames(porig))
+  if ("data.frame" %in% class(porig)) padj <- as.data.frame(padj)
+  padj
+}
+
+
+
 ### Dataframe processing ------
 
 

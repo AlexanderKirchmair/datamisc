@@ -1,7 +1,5 @@
 
 
-
-
 #' List pipe
 #'
 #' @param lhs List or list-like object

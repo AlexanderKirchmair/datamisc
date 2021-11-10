@@ -51,6 +51,11 @@ use_package("ggdendro")
 use_package("paletteer")
 use_package("BiocParallel")
 use_package("patchwork")
+use_package("limma")
+use_package("edgeR")
+use_package("DESeq2")
+use_package("GSVA")
+use_package("fgsea")
 
 ```
 
@@ -69,6 +74,18 @@ Update documentation
 document()
 
 ```
+
+
+
+```{r}
+
+usethis::use_vignette("survival")
+
+
+```
+
+
+
 
 
 
