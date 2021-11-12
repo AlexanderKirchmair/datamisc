@@ -532,3 +532,111 @@ readTables <- function(file, rowNames = TRUE, ...){
   res
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Data processing ------
+
+
+
+#' Hierarchical clustering of data
+#'
+#' @param data matrix or dataframe
+#' @param method hclust
+#' @param rows cluster rows
+#' @param cols cluster columns
+#' @param inf handling of non-finite values
+#' @param na handling of missing values
+#' @param ...
+#'
+#' @return clust
+#' @export
+#'
+#' @examples
+clusterData <- function(data, method = "hclust", rows = NULL, cols = NULL, inf = NULL, na = NULL, ...){
+
+  ### Cluster rows/columns of a dataframe or matrix with NA or Inf values
+
+
+  # input arguments
+  if (is.null(rows)) rows <- nrow(data) < 1000
+  if (is.null(cols)) cols <- ncol(data) < 1000
+  if (is.null( na))  na <- ""
+  if (is.null(inf)) inf <- ""
+
+
+
+  # +/-Inf value handling
+  if (any(!is.finite(nat(data)))){
+
+    if (naf(inf == FALSE)) data <- subInf(data)
+    if (is.na(inf)) data[!is.finite(data)] <- inf
+
+  }
+
+
+
+  # NA value handling (1)
+  if (any(is.na(data))){
+
+
+    if (is.numeric(na)) data[is.na(data)] <- na
+
+
+
+  }
+
+
+
+
+
+
+
+  # Clustering
+  tmp <- list(rows = data, cols = t(data))
+  res <- lapply(tmp[c(rows, cols)], function(data){
+
+    # NA value handling (2)
+    if (na == "omit") data <- na.omit(data)
+
+    clust <- NULL
+
+    if (method == "hclust") clust <- dendsort::dendsort(stats::hclust(stats::dist(data)))
+
+
+
+
+
+
+
+    clust
+  })
+
+
+
+  # col.clusters <- dendextend::rotate(col.clusters, cluster_order)
+
+  res
+}
+
+
+
+
+
+
