@@ -2,59 +2,47 @@
 
 
 # add significance labels
-# font sizes
-# zscore
-# add column names as separate plots? (should align with dendro)
+
 
 
 # # Example data:
-# data <- rmat(80, 30)
-# data <- data-mean(data)
+# data <- rmat(100, 30)
 # rowdata <- data.frame(row.names = rownames(data), group = sample(c("groupA", "groupB"), nrow(data), replace = TRUE))
 # rowdata$group2 <- paste0("G", sample(1:3, nrow(data), replace = TRUE))
 # coldata <- data.frame(row.names = colnames(data), class = sample(c("A", "B", "C"), ncol(data), replace = TRUE))
 #
 #
-# ggheatmap(data)
+# ggheatmap(data-mean(data), rowdata = rowdata, rownames = F, rowdata_names = T, check = F,widths = c(1,2,1),
+#           layout = list("top" = "col_dendro", "bottom" = c("col_anno"), "left" = c("row_dendro", "row_anno")))
 #
-# ggheatmap(data, rowdata = rowdata, rownames = T, rowdata_names = T, check = F,widths = c(1,2,1),coldata = coldata,
-#           layout = list("top" = "col_dendro", "bottom" = c("col_anno"), "left" = c("row_dendro", "row_anno", "legend")), vjust = -1.5)
 #
-# hm <- ggheatmap(data, lab = "score", rowdata = rowdata, rownames = T, rowdata_names = F, check = F, plot = F)
-# hm
+# ggheatmap(data-mean(data), rowdata = rowdata, rownames = F, rowdata_names = T, check = T)
+#
+# gg <- ggheatmap(data-mean(data), rowdata = rowdata, rownames = F, rowdata_names = T, check = F, return_list = T)
+#
+# # scale_fill for annotations: either 1 or all cols or combining multiple individual ggplots
+#
 
 
 
 
 
 ggheatmap <- function(data,
-                      lab = "value", legend = TRUE,
                       rownames = TRUE, rowdata = NULL, rowdata_names = FALSE,
                       colnames = TRUE, coldata = NULL,
                       colors = NULL,
-                      low = "#004cff", mid = "white", high = "#ffae00",
                       layout = NULL, widths = c(0.1,1,0.1), heights = c(0.1,1,0.1),
-                      tidy = FALSE, check = FALSE, plot = TRUE,
+                      tidy = FALSE, check = FALSE,
                       cluster_rows = NULL, cluster_cols = NULL, dendro_rows = TRUE, dendro_cols = TRUE, cluster_NA = NULL, clusterFUN = NULL,
-                      ...){
+                      return_list = FALSE, ...){
 
-
-
-
-  ### Input arguments
-
-  # determine whether to perform clustering based on number of rows/columns
-  if (is.null(cluster_rows) & nrow(data) < 1000) cluster_rows <- TRUE
-  if (is.null(cluster_cols) & ncol(data) < 1000) cluster_cols <- TRUE
-
-
-  if (is.null(layout)){ layout <- list("top" = c("col_dendro"), "right" = c("legend"), "bottom" = c("col_anno"), "left" = c("row_dendro", "row_anno")) }
 
 
   gg <- list()
-  row_clusters <- NULL
-  col_clusters <- NULL
+  if (is.null(colors)) colors <- list()
 
+
+  if (is.null(layout)){ layout <- list("top" = c("col_dendro"), "right" = c("row_anno"), "bottom" = c("col_anno"), "left" = c("row_dendro")) }
 
 
 
@@ -83,6 +71,11 @@ ggheatmap <- function(data,
   ### Clustering ----
   # todo: update dendsort
 
+
+  # determine whether to perform clustering based on number of rows/columns
+  if (is.null(cluster_rows)) cluster_rows <- TRUE
+  if (is.null(cluster_cols)) cluster_cols <- TRUE
+
   # substitution of NA values for clustering
   data_clust <- data
   if (!is.null(cluster_NA)){
@@ -98,45 +91,122 @@ ggheatmap <- function(data,
 
   # Row clusters
   if (cluster_rows == TRUE){
+
     row_clusters <- clusterFUN(data)
     data_tidy$y <- factor(data_tidy$y, ordered = TRUE, levels = row_clusters$labels[row_clusters$order]) # reorder data according to the clustering
-    if (dendro_rows == TRUE) gg$row_dendro <- .getDendrogram(cluster = row_clusters, ddata = ddata, side = "x", check = check)
+
+    if (dendro_rows == TRUE){ # plot if TRUE
+
+      ddata <- ggdendro::dendro_data(as.dendrogram(row_clusters), type = "rectangle")
+      ddata$labels$label <- factor(ddata$labels$label, ordered = TRUE, levels = ddata$labels$label[ddata$labels$x])
+
+      gg$row_dendro <- ggplot2::ggplot() +
+        cowplot::theme_nothing() +
+        ggplot2::geom_text(data = ddata$labels, color = ifelse(check == TRUE, "blue", NA), hjust = 1, vjust = 0.5, mapping = ggplot2::aes(x = 0, y = label, label = label)) + # this adds the correct x scale
+        ggplot2::geom_segment(data = ddata$segments, ggplot2::aes(x = -y, y = x, xend = -yend, yend = xend)) +
+        ggplot2::scale_x_continuous(expand = c(0,0))
+
+    }
   }
 
   # Column clusters
   if (cluster_cols == TRUE){
+
     col_clusters <- clusterFUN(t(data))
     data_tidy$x <- factor(data_tidy$x, ordered = TRUE, levels = col_clusters$labels[col_clusters$order]) # reorder data according to the clustering
-    if (dendro_cols == TRUE) gg$col_dendro <- .getDendrogram(cluster = col_clusters, ddata = ddata, side = "y", check = check)
-  }
 
+    if (dendro_cols == TRUE){ # plot if TRUE
 
+      ddata <- ggdendro::dendro_data(as.dendrogram(col_clusters), type = "rectangle")
+      ddata$labels$label <- factor(ddata$labels$label, ordered = TRUE, levels = ddata$labels$label[ddata$labels$x])
 
-  ### Colors ----
+      gg$col_dendro <- ggplot2::ggplot() +
+        cowplot::theme_nothing() +
+        ggplot2::geom_text(data = ddata$labels, color = ifelse(check == TRUE, "blue", NA),  hjust = 0.5, vjust = 0, mapping = ggplot2::aes(x = label, y = 0, label = label)) + # this adds the correct y scale
+        ggplot2::geom_segment(data = ddata$segments, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+        ggplot2::scale_y_continuous(expand = c(0,0))
 
-  if (is.null(colors)) colors <- list()
-
-  colors <- c(colors,
-              getColors(coldata[,!colnames(coldata) %in% names(colors), drop = FALSE]),
-              getColors(rowdata[,!colnames(rowdata) %in% names(colors), drop = FALSE]))
-
-  if (is.null(colors$hm)){
-    if (any(data_tidy$value < 0)){
-      colors$hm <- ggplot2::scale_fill_gradient2(name = lab, low = low, mid = mid, high = high)
-    } else {
-      colors$hm <- ggplot2::scale_fill_gradient(name = lab, low = low, high = high)
     }
   }
 
 
 
+
   ### Annotations ----
 
-  ggrow <- .ggAnno(rowdata, type = "row", anno_names = rowdata_names, layout = layout, colors = colors, gg = gg, check = check, tidy = tidy, data_tidy = data_tidy, ...)
-  gg <- c(gg, ggrow)
 
-  ggcol <- .ggAnno(coldata, type = "col", anno_names = coldata_names, layout = layout, colors = colors, gg = gg, check = check, tidy = tidy, data_tidy = data_tidy, ...)
-  gg <- c(gg, ggcol)
+
+
+  rowdata_tidy <- NULL
+
+  if (tidy == FALSE){
+
+    rowdata_tidy <- as.data.frame(tidyr::pivot_longer(dplyr::mutate(rowdata, id = rownames(rowdata)), -id))
+    colnames(rowdata_tidy) <- c("y", "x", "value")
+    rowdata_tidy$x <- factor(rowdata_tidy$x, ordered = TRUE, levels = rev(colnames(rowdata))) # set cluster order
+    rowdata_tidy$y <- factor(rowdata_tidy$y, ordered = TRUE, levels = levels(data_tidy$y)) # set cluster order
+
+  } else {
+
+    # pull from tidy data
+
+  }
+
+
+
+
+
+
+  # Row annotation
+
+  if (!is.null(rowdata_tidy)){
+
+
+    rowdata_list <- setNames(split(rowdata_tidy, rowdata_tidy$x), NULL)
+    names(rowdata_list) <- sapply(rowdata_list, function(x) unique(x$x))
+
+
+    # annotation plot (should have the same y axis as the main heatmap)
+    row_anno_plots <- lapply(setNames(names(rowdata_list), names(rowdata_list)), function(tmp){
+
+      rowtmp <- rowdata_list[[]]
+
+      gg <- ggplot2::ggplot(data = rowtmp, mapping = ggplot2::aes(x = x, y = y, fill = value)) +
+        ggplot2::theme_void() +
+        ggplot2::geom_tile() +
+        ggplot2::scale_x_discrete(expand = c(0,0)) +
+        ggplot2::scale_y_discrete(position = "right")
+
+      # add labels outside of the plotting area (to avoid gaps between heatmaps on top/bottom annotations)
+      x <- setdiff(unique(rowtmp$x), "id")
+      gg + ggplot2::annotate("text",
+                              x = x,
+                              y = rev(levels(rowtmp$y))[1],
+                              label = x,
+                              vjust = -1.5)
+
+    })
+
+
+    # gg$row_anno + ggplot2::facet_wrap(~ x, scales = "free_x")
+    # $row_anno + ggplot2::guides(fill = ggplot2::guide_legend(ncol= ncol(rowdata)))
+
+    if (check == TRUE | rowdata_names == TRUE) row_anno_plots[[length(row_anno_plots)]] <- row_anno_plots[[length(row_anno_plots)]] + ggplot2::theme(axis.text.y = ggplot2::element_text())
+
+    gg <- c(gg, setNames(row_anno_plots, paste0("row_anno_", names(row_anno_plots))))
+
+
+
+  }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -148,12 +218,24 @@ ggheatmap <- function(data,
     ggplot2::theme(axis.title = ggplot2::element_blank()) +
     ggplot2::geom_tile(color = "white") +
     ggplot2::scale_x_discrete(position = "bottom") +
-    ggplot2::scale_y_discrete(position = "right") +
-    colors$hm
+    ggplot2::scale_y_discrete(position = "right")
+
+
+  if (any(data_tidy$value < 0)){
+    gg$hm <-  gg$hm + ggplot2::scale_fill_gradient2(low = "#004cff", mid = "white", high = "#ffae00")
+  } else {
+    gg$hm <-  gg$hm + ggplot2::scale_fill_gradient(low = "#ededed", high = "#004cff")
+  }
+
 
 
   if (rownames == TRUE) gg$hm <- gg$hm + ggplot2::theme(axis.text.y = ggplot2::element_text())
   if (colnames == TRUE) gg$hm <- gg$hm + ggplot2::theme(axis.text.x = ggplot2::element_text())
+
+
+
+
+
 
 
 
@@ -173,32 +255,31 @@ ggheatmap <- function(data,
   }
 
 
-  if ("legend" %in% unlist(layout)) gg$legend <- patchwork::guide_area()
-
-  lix <- grepl("anno", names(gg))
-  if (legend == FALSE) gg[lix] <- lapply(gg[lix], function(tmp) tmp + ggplot2::theme(legend.position = "none") )
-
+  if (return_list == TRUE){ # return list of plots instead of the combined final plot
+    # combine legends from all plots
+    # legends <- lapply(gg, cowplot::get_legend)
+    # legends <- legends[lengths(legends) > 0]
+    # gg <- lapply(gg, function(tmp) tmp + ggplot2::theme(legend.position = "none"))
+    # gg$legends <- patchwork::wrap_plots(legends, ncol = ceiling(length(legends)/2))
+    return(gg)
+  }
 
   # arrange plots
+
   p <- .getLayout(gg, layout, widths, heights)
-  p$cluster$row <- row_clusters
-  p$cluster$col <- col_clusters
 
+  gg_comb <- patchwork::wrap_plots(p$plotlist,
+                                   guides = "collect",
+                                   design = p$layout,
+                                   widths = p$widths_adj,
+                                   heights = p$heights_adj)
 
+  # row/col-titles
+  # overall title
 
-  ### Output ----
-
-  class(p) <- c("ggheatmap", "gg", "list")
-  if (plot == TRUE) p <- plot(p)
-  p
-
+  gg_comb
 
 }
-
-
-
-
-
 
 
 greps <- function(patterns, x, ..., FUN = grepl){
@@ -209,39 +290,10 @@ greps <- function(patterns, x, ..., FUN = grepl){
 
 
 
-.plotGgheatmap <- function(p, ...){
-
-  patchwork::wrap_plots(p$plotlist,
-                        guides = "collect",
-                        design = p$layout,
-                        widths = p$widths_adj,
-                        heights = p$heights_adj,
-                        ...)
-
-}
-
-
-plot.ggheatmap <- function(x, ...){
-  .plotGgheatmap(p = x, ...)
-}
-
-
-print.ggheatmap <- function(x, ...){
-  print(plot(x, ...))
-}
-
-
 .getLayout <- function(gg, layout, widths, heights){
 
-  # arrange the plotlist into top, right, bottom, left parts based on layout
   g <- lapply(layout, function(ltmp) gg[greps(ltmp, names(gg))] )
 
-  if ("legend" %in% names(g$left)){
-    ix <- grep("legend", names(g$left))
-    g$left <- c(g$left[ix], g$left[-ix])
-  }
-
-  # add main
   g$main <- list("A" = gg$hm)
   if (!is.null(g$top)) names(g$top) <- setdiff(LETTERS, "A")[seq(g$top)]
   if (!is.null(g$left)) names(g$left) <- setdiff(LETTERS, c("A", names(g$top)))[seq(g$left)]
@@ -251,8 +303,6 @@ print.ggheatmap <- function(x, ...){
   col <- c(names(g$top), names(g$main), names(g$bottom))
   row <- c(names(g$left), names(g$main), names(g$right))
   mat <- matrix(nrow = length(col), ncol = length(row))
-
-  # add corners (annotation titles)
 
   mat[which(col == "A"),] <- row
   mat[,which(row == "A")] <- col
@@ -272,6 +322,65 @@ print.ggheatmap <- function(x, ...){
                    heights[2],
                    rep(heights[3]/length(g$bottom), length(g$bottom)))
 
+  # mat <- matrix(0, nrow = 3, ncol = 3)
+  # mat[2,2] <- NA
+  # mat[2,1] <- length(g$left)
+  # mat[1,2] <- length(g$top)
+  # mat[2,3] <- length(g$right)
+  # mat[3,2] <- length(g$bottom)
+
+#
+#   # generate layout - columns
+#   i <- 1
+#   n <- ncol(mat)
+#   while(i <= n){
+#     n <- ncol(mat)
+#     cent <- which(is.na(rowSums(mat)))
+#     if (sum(mat[cent,i], na.rm = TRUE) > 1){
+#       if (i == 1) tmp0 <- NULL else tmp0 <- mat[,1:(i-1)]
+#       tmp <- matrix(rep(mat[,i], mat[cent,i]), nrow = nrow(mat))
+#       tmp[cent,] <- 1
+#       if (i < ncol(mat)-1) tmp2 <- mat[,(i+1):ncol(mat)] else tmp2 <- NULL
+#       mat <- cbind(tmp0, tmp, tmp2)
+#     }
+#     i <- i+1
+#   }
+#
+#
+#   # generate layout - rows
+#   i <- 1
+#   n <- nrow(mat)
+#   while(i <= n){
+#     n <- nrow(mat)
+#     cent <- which(is.na(colSums(mat)))
+#     if (sum(mat[i,cent], na.rm = TRUE) > 1){
+#       if (i == 1) tmp0 <- NULL else tmp0 <- mat[1:(i-1),]
+#       tmp <- matrix(rep(mat[i,], mat[i,cent]), nrow = nrow(mat), byrow = TRUE)
+#       tmp[,cent] <- 1
+#       if (i < nrow(mat)-1) tmp2 <- mat[(i+1):nrow(mat),] else tmp2 <- NULL
+#       mat <- rbind(tmp0, tmp, tmp2)
+#     }
+#     i <- i+1
+#   }
+#
+#
+#   mat <- mat[rowSums(mat) != 0 | is.na(rowSums(mat)), colSums(mat) != 0 | is.na(colSums(mat))]
+#
+#   lmat <- mat * NA
+#   lmat[is.na(mat)] <- "Z"
+#   lmat[mat == 0] <- "#"
+#   for (i in 1:nrow(mat)){
+#     for (j in 1:ncol(mat)){
+#       if (is.na(lmat[i,j])) lmat[i,j] <- setdiff(LETTERS, unique(as.vector(lmat)))[1]
+#     }
+#   }
+#
+#   # make named plotlist
+#   ind <- which(lmat == "Z", arr.ind = TRUE)
+#
+#
+#   top <- lmat[,ind[,"col"]]
+
 
   list(plotlist = p, layout = mat, widths_adj = widths_adj, heights_adj = heights_adj)
 }
@@ -280,157 +389,27 @@ print.ggheatmap <- function(x, ...){
 
 
 
-.ggAnno <- function(annodata, type, layout, colors, gg, data_tidy, anno_names = FALSE, check = FALSE, tidy = FALSE, ...){
 
-  if (is.null(annodata)) return(NULL)
-  stopifnot(type %in% c("row", "col"))
-
-
-  if ("gg" %in% class(annodata)){
-    return(annodata)
-
-  } else {
-
-    annodata_tidy <- NULL
-
-    if (tidy == FALSE){
-
-      annodata_tidy <- as.data.frame(tidyr::pivot_longer(dplyr::mutate(annodata, id = rownames(annodata)), -id))
-      annodata_tidy$name <- factor(annodata_tidy$name, ordered = TRUE, levels = rev(colnames(annodata))) # set cluster order
-
-      if (type == "row"){
-        #colnames(annodata_tidy) <- c("y", "x", "value")
-        annodata_tidy$id <- factor(annodata_tidy$id, ordered = TRUE, levels = levels(data_tidy$y)) # set cluster order
-      }
-
-      if (type == "col"){
-        #colnames(annodata_tidy) <- c("x", "y", "value")
-        annodata_tidy$id <- factor(annodata_tidy$id, ordered = TRUE, levels = levels(data_tidy$x)) # set cluster order
-      }
-
-
-    } else {
-
-      # pull from tidy data
-
-
-
-
-
-
-
-
-    }
-
-    if (!is.null(annodata_tidy)){
-
-      annodata_list <- setNames(split(annodata_tidy, annodata_tidy$name), NULL)
-      names(annodata_list) <- sapply(annodata_list, function(x) unique(x$name))
-
-      if (type == "row"){
-        annodata_list <- lapply(annodata_list, function(tmp) dplyr::rename(.data = tmp, x = name, y = id))
-      } else if (type == "col"){
-        annodata_list <- lapply(annodata_list, function(tmp) dplyr::rename(.data = tmp, x = id, y = name))
-      }
-
-
-
-      # annotation plot (should have the same y axis as the main heatmap)
-      anno_plots <- lapply(setNames(names(annodata_list), names(annodata_list)), function(tmp){
-
-        datatmp <- annodata_list[[tmp]]
-
-        gg <- ggplot2::ggplot(data = datatmp, mapping = ggplot2::aes(x = x, y = y, fill = value)) +
-          ggplot2::theme_void() +
-          ggplot2::geom_tile() +
-          ggplot2::scale_x_discrete(expand = c(0,0))
-
-        if (type == "row" & any(grepl("row_anno", layout$right))) gg <- gg + ggplot2::scale_y_discrete(position = "right")
-        if (type == "col" & any(grepl("col_anno", layout$top))) gg <- gg + ggplot2::scale_x_discrete(position = "top")
-
-        # add labels outside of the plotting area (to avoid gaps between heatmaps on top/bottom annotations)
-        if (type == "row"){
-          gg <- gg + ggplot2::annotate("text",
-                                       x = tmp,
-                                       y = rev(levels(datatmp$y))[1],
-                                       label = tmp,
-                                       vjust = -1.5)
-        } else {
-          gg <- gg + ggplot2::annotate("text",
-                                       x = rev(levels(datatmp$x))[1],
-                                       y = tmp,
-                                       label = tmp,
-                                       hjust = -1)
-        }
-
-
-
-        # anno_titles
-        # ggplot2::ggplot(data.frame(x = tmp, y = 1), aes(x, y, label = x)) + theme_void() + geom_text()
-
-
-        if ("Scale" %in% class(colors[[tmp]])){
-          gg <- gg + colors[[tmp]]
-
-        } else {
-
-          ## add scale for numerical data #########
-
-
-
-          gg <- gg + ggplot2::scale_fill_manual(name = tmp, values = colors[[tmp]])
-        }
-
-        gg
-      })
-
-
-
-
-      if (type == "row"){
-        if (check == TRUE | (anno_names == TRUE & any(grepl("anno", layout$right)))) anno_plots[[length(anno_plots)]] <- anno_plots[[length(anno_plots)]] + ggplot2::theme(axis.text.y = ggplot2::element_text())
-        if (check == TRUE | (anno_names == TRUE & any(grepl("anno", layout$left)))) anno_plots[[1]] <- anno_plots[[1]] + ggplot2::theme(axis.text.y = ggplot2::element_text())
-      } else if (type == "col"){
-
-
-      }
-    }
-
-    if (type == "row") anno_plots <- setNames(anno_plots, paste0("row_anno_", names(anno_plots)))
-    if (type == "col") anno_plots <- setNames(anno_plots, paste0("col_anno_", names(anno_plots)))
-
-    anno_plots
-
-  }
-
-}
-
-
-
-
-
-
-
-
-.getDendrogram <- function(cluster, ddata, side = "x", check = FALSE){
-
-  ddata <- ggdendro::dendro_data(as.dendrogram(cluster), type = "rectangle")
-  ddata$labels$label <- factor(ddata$labels$label, ordered = TRUE, levels = ddata$labels$label[ddata$labels$x])
-
-  dendro <- ggplot2::ggplot() + cowplot::theme_nothing()
-
-  if (side == "x"){
-    dendro <- dendro + ggplot2::geom_text(data = ddata$labels, color = ifelse(check == TRUE, "blue", NA), hjust = 1, vjust = 0.5, mapping = ggplot2::aes(x = 0, y = label, label = label)) + # this adds the correct x scale
-      ggplot2::geom_segment(data = ddata$segments, ggplot2::aes(x = -y, y = x, xend = -yend, yend = xend)) +
-      ggplot2::scale_x_continuous(expand = c(0,0))
-  } else {
-    dendro <- dendro + ggplot2::geom_text(data = ddata$labels, color = ifelse(check == TRUE, "blue", NA),  hjust = 0.5, vjust = 0, mapping = ggplot2::aes(x = label, y = 0, label = label)) + # this adds the correct y scale
-      ggplot2::geom_segment(data = ddata$segments, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-      ggplot2::scale_y_continuous(expand = c(0,0))
-
-  }
-
-  dendro
-}
-
+# # Customize:
+#
+#
+# gh <- ggheatmap(data, rowdata = rowdata, rownames = F, rowdata_names = T, check = F)
+# gh[[3]] <- gh[[3]] + ggplot2::scale_fill_gradient2(low = "red", mid = "white", high = "blue")
+# gh
+#
+#
+# ggl <- ggheatmap(data, rowdata = rowdata, rownames = T, rowdata_names = T, check = F, return_list = TRUE)
+#
+# names(ggl)
+# ggl2 <- setNames(ggl, c("d", "e", "r", "H"))
+#
+# layout <- "##e
+#            drH
+#            ###"
+#
+# patchwork::wrap_plots(ggl2,
+#                       guides = "collect",
+#                       design = layout,
+#                       widths = c(1,1,3),
+#                       heights = c(1,3,1))
 
