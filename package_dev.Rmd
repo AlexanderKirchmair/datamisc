@@ -14,6 +14,10 @@ library(testthat)
 https://r-pkgs.org/
 
 
+To do:
+* add easyverse
+
+
 ```{r initial setup}
 
 # create_package("newfolder") # File > New Project... > ...
@@ -56,13 +60,14 @@ use_package("edgeR")
 use_package("DESeq2")
 use_package("GSVA")
 use_package("fgsea")
+use_package("crayon")
 
 ```
 
 Add R scripts
 ```{r}
 
-use_r("survival_functions.R")
+use_r("meta_functions.R")
 
 ```
 

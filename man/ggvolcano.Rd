@@ -39,7 +39,7 @@ ggvolcano(
 )
 }
 \arguments{
-\item{data}{Datafram}
+\item{data}{Dataframe}
 
 \item{x}{Variable to plot on x-axis}
 

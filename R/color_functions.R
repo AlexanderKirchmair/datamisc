@@ -1,6 +1,13 @@
 
 
 
+# NOTE
+# colors should be stored in a list as following:
+# colors$factor = c(lev1 = "blue", lev2 = "red)
+# colors$continuous = c("min" = "blue", "mid" = "white", "max" = "red")
+
+
+
 #' Interactive color picker
 #'
 #' @export
@@ -120,6 +127,21 @@ theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_
   th
 
 }
+
+#
+# pal <- qualpalr::autopal(10, colorspace = "pretty_dark")
+# showColors(pal$hex)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

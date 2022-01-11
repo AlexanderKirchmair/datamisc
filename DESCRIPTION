@@ -43,5 +43,6 @@ Imports:
     limma,
     edgeR,
     GSVA,
-    fgsea
+    fgsea,
+    crayon
 VignetteBuilder: knitr

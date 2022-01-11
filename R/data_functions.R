@@ -101,6 +101,55 @@ quo_class <- function(x, ...){
 
 
 
+
+
+#' Colored printing to compare two dataframes
+#'
+#' @param m1
+#' @param m2
+#' @param ncol
+#' @param digits
+#' @param sep
+#' @param width
+#'
+#' @return
+#' @export
+#'
+#' @examples
+compare <- function(m1, m2, ncol = 10, digits = 3, sep = "/", width = 20){
+
+  m1 <- data.matrix(m1)
+  m2 <- data.matrix(m2)
+
+  stopifnot(all(dim(m1) == dim(m2)))
+
+  diff <- ifelse(naf(m1 == m2), "", "***")
+  diff[is.na(m1) | is.na(m2)] <- "***"
+  diff[is.na(m1) & is.na(m2)] <- ""
+
+  com <- paste0(nar(as.character(unlist(signif(m1, digits))), "NA"), sep, nar(as.character(unlist(signif(m2, digits))), "NA"))
+  com <- paste0(com, diff)
+
+  out <-  matrix(com, nrow = nrow(m1), dimnames = dimnames(m1))
+  if (!is.null(ncol)) out <- out[,1:ncol]
+  out[,ncol(out)] <- paste0( out[,ncol(out)], "\n")
+
+  out_col <- crayon::red(out[grepl("***", out, fixed = TRUE)])
+  out_col <- gsub("***", "", out_col, fixed = TRUE)
+
+  out[grepl("***", out, fixed = TRUE)] <- out_col
+
+  if (!is.null(rownames(m1))) out <- cbind(crayon::underline(rownames(m1)), out)
+
+  res <- apply(out, 1, function(x) cat(crayon::col_align(x, width, "right")) )
+  invisible(res)
+}
+
+
+
+
+
+
 ### NA handling ------
 
 #' Set NA values to FALSE
@@ -119,6 +168,17 @@ nat <- function(data, ...){
   data[is.na(data)] <- TRUE
   data
 }
+
+#' Set NA values to any other value
+#' @return
+#' @export
+nar <- function (data, replace = 0, ...){
+  data[is.na(data)] <- replace
+  data
+}
+
+
+
 
 
 #' Skip rows/columns containing NA values
@@ -539,11 +599,35 @@ readTables <- function(file, rowNames = TRUE, ...){
 
 
 
+### Apply functions ------
 
 
 
+#' Nested apply
+#'
+#' @param X List
+#' @param FUN Function
+#' @param n Level
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+napply <- function(X, FUN, n, ...){
 
+  if (n == 0) return( FUN(X) )
+  if (n == 1) return( lapply(X, FUN) )
 
+  args <- list(...)
+  args <- unlist(lapply(seq_along(args), function(i) paste0(names(args)[i], "=", as.character(args[[i]])) ))
+  args <- paste(args, collapse = ", ")
+
+  call <- paste("X", paste(rep("lapply", n-1), collapse = ", "), "FUN", args, sep = ", ")
+  call <- paste0("lapply(", call, ")")
+
+  eval(parse(text = call))
+}
 
 
 
@@ -635,6 +719,38 @@ clusterData <- function(data, method = "hclust", rows = NULL, cols = NULL, inf =
   res
 }
 
+
+
+
+
+
+
+wtf <- function(x){
+
+  cat("Class:", class(x), "\n")
+
+  if (is.null(dim(x))){
+    cat("Length:", length(x), "\n")
+  } else {
+    cat("Dim:", dim(x), "\n")
+    cat("Rows:", rownames(x)[1:3], "\n")
+    cat("Cols:", colnames(x)[1:3], "\n")
+
+    message("Head:")
+    print(head(x))
+  }
+
+  if (length(x) > 3){
+    message("Structure:")
+    print(str(x[1:3]))
+
+    message("First entry:")
+    print(head(x[[1]]))
+  }
+
+
+  invisible(x)
+}
 
 
 

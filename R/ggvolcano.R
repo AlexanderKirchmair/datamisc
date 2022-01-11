@@ -4,7 +4,7 @@
 #'
 #' @importFrom magrittr %<>%
 #' @importFrom ggplot2 %+%
-#' @param data Datafram
+#' @param data Dataframe
 #' @param x Variable to plot on x-axis
 #' @param y Variable to plot on y-axis
 #' @param color
@@ -50,34 +50,6 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   ### Function to plot volcano plots using ggplot.
 
 
-
-  getLimits <- function(x, clip = TRUE, expand = xe){
-
-    x <- x[!is.na(x)]
-    x <- x + x*expand
-
-    if (clip == TRUE){
-      h <- hist(x, plot = FALSE, breaks = 30)
-      xd <- h$counts > 3
-      xmin <- h$breaks[which(xd)[1]]
-
-
-      xmax <- rev(h$breaks)[which(rev(xd))[1]]
-    } else {
-      xmin <- NA
-      xmax <- NA
-    }
-
-    if (is.na(xmin)){ xmin <- floor(min(x)*10^-floor(-log10(abs(min(x)))))/10^-floor(-log10(abs(min(x)))) }
-    if (is.na(xmin)){xmin <- 0}
-    if (xmin > 0){xmin <- 0}
-    if (is.na(xmax)){ xmax <- ceiling(max(x)*10^-floor(-log10(abs(max(x)))))/10^-floor(-log10(abs(max(x)))) }
-
-    return(c("min" = xmin, "max" = xmax))
-  }
-
-
-
   # PARSE INPUTS
 
   data <- as.data.frame(data)
@@ -91,12 +63,19 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$x <- data[[rlang::as_name(x)]]
   data$y <- -log10(data[[rlang::as_name(y)]])
   data <- data[!is.na(data$x) & !is.na(data$y),]
-  data$score <- abs(as.numeric(scale(data$x, center = FALSE))) * abs(as.numeric(scale(data$y, center = FALSE)))
+
+  data$xtmp <- data$x
+  data$xtmp[is.infinite(data$xtmp)] <- max(abs(data$xtmp[!is.infinite(data$xtmp)])) * sign(data$xtmp[is.infinite(data$xtmp)])
+  data$ytmp <- data$y
+  data$ytmp[is.infinite(data$ytmp)] <- max(abs(data$ytmp[!is.infinite(data$ytmp)])) * sign(data$ytmp[is.infinite(data$ytmp)])
+  data$score <- abs(as.numeric(scale(data$xtmp, center = FALSE))) + abs(as.numeric(scale(data$ytmp, center = FALSE)))
+  data$score[is.na(data$score)] <- 0
 
   data$class <- "not signif."
   data$class[data[[rlang::as_name(y)]] <= ptres & data$x > 0] <- "up"
   data$class[data[[rlang::as_name(y)]] <= ptres & data$x < 0] <- "down"
 
+  data$score[data$class == "not signif."] <- data$score[data$class == "not signif."] * 0.001
 
   if (is.null(title_size)) title_size <- lab_size
   if (is.null(axis_size)) axis_size <- lab_size
@@ -124,6 +103,9 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   nlabels_left <- nlabels_right <- 0
   if (nrow(subset(data, x < 0)) > 0) nlabels_left <- ceiling(nlabels/2 * max(subset(data, x < 0)$score, na.rm = TRUE) / max(data$score, na.rm = TRUE))
   if (nrow(subset(data, x > 0)) > 0) nlabels_right <- ceiling(nlabels/2 * max(subset(data, x > 0)$score, na.rm = TRUE) / max(data$score, na.rm = TRUE))
+  if (is.na(nlabels_left)) nlabels_left <- 0
+  if (is.na(nlabels_right)) nlabels_right <- 0
+
   data$do_label[data$x < 0][1:nlabels_left] <- TRUE
   data$do_label[data$x > 0][1:nlabels_right] <- TRUE
   data$do_label[is.na(data$do_label)] <- FALSE
@@ -147,7 +129,7 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
   # LIMITS
 
-  xylimits <- list(xlim = getLimits(data$x, clip = clip, expand = expand[1]), ylim = getLimits(data$y, clip = clip, expand = expand[2]))
+  xylimits <- list(xlim = getLimits(data$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(data$ytmp, clip = clip, expand = expand[2], negative = FALSE))
   if (symlim == TRUE){ xylimits$xlim <- c("min" = -max(abs(xylimits$xlim)), "max" = max(abs(xylimits$xlim))) }
   data$xorg <- data$x
   data$yorg <- data$y
@@ -159,8 +141,8 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   # if clip==FALSE and no points are cut off, use breaks as is
 
   # X breaks
-  xclip_min <- any(data$xorg < xylimits$xlim["min"])
-  xclip_max <- any(data$xorg > xylimits$xlim["max"])
+  xclip_min <- any(naf(data$xorg < xylimits$xlim["min"]))
+  xclip_max <- any(naf(data$xorg > xylimits$xlim["max"]))
 
   xbreaks <- scales::pretty_breaks(n = nbreaks_x)(xylimits$xlim, n = nbreaks_x)
   if (clip & xclip_min){
@@ -185,8 +167,8 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
 
   # Y breaks
-  yclip_min <- any(data$yorg < xylimits$ylim["min"])
-  yclip_max <- any(data$yorg > xylimits$ylim["max"])
+  yclip_min <- any(naf(data$yorg < xylimits$ylim["min"]))
+  yclip_max <- any(naf(data$yorg > xylimits$ylim["max"]))
 
   ybreaks <- scales::pretty_breaks(n = nbreaks_y)(xylimits$ylim, n = nbreaks_y)
 
@@ -249,7 +231,7 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
     gg %<>% + ggplot2::geom_point(size = point_size, alpha = 0.8)
   } else {
     gg %<>% + ggplot2::geom_point(aes(size = score), alpha = 0.8)
-    gg %<>% + ggplot2::scale_size_continuous(range = c(point_size/5, point_size*2), guide = FALSE)
+    gg %<>% + ggplot2::scale_size_continuous(range = c(point_size/5, point_size*2), guide = "none")
   }
 
 
@@ -287,12 +269,44 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
 
 
+getLimits <- function(x, clip = TRUE, expand = 1, negative = TRUE){
+
+  x <- x[!is.na(x)]
+  x <- x + x*expand
+
+  if (clip == TRUE){
+    h <- hist(x, plot = FALSE, breaks = 30)
+    xd <- h$counts > 3
+    xmin <- h$breaks[which(xd)[1]]
+    xmax <- rev(h$breaks)[which(rev(xd))[1]]
+
+  } else {
+    xmin <- NA
+    xmax <- NA
+  }
+
+  # if (is.na(xmin)){ xmin <- floor(min(x)*10^-floor(-log10(abs(min(x)))))/10^-floor(-log10(abs(min(x)))) }
+  # if (is.na(xmin)){xmin <- 0}
+  # if (xmin > 0){xmin <- 0}
+  # if (is.na(xmax)){ xmax <- ceiling(max(x)*10^-floor(-log10(abs(max(x)))))/10^-floor(-log10(abs(max(x)))) }
+
+  if (is.na(xmax)) xmax <- max(x) %>% roundup(., roundup(-log10(abs(.)))) # upper
+  if (is.na(xmin)) xmin <- min(x) %>% rounddown(., roundup(-log10(abs(.)))) # lower
+
+  if (is.na(xmin)){xmin <- -0.1 * xmax}
+  if (is.na(xmax)){xmax <- -0.1 * xmin}
+
+  if (is.na(xmax) & is.na(xmin)){
+    xmin <- -1
+    xmax <- 1
+  }
 
 
+  res <- c("min" = xmin, "max" = xmax)
+  if (negative == FALSE) res[res < 0] <- 0
 
-
-
-
+  res
+}
 
 
 

@@ -2,6 +2,92 @@
 
 
 
+#' Ggplot2 barplot
+#'
+#' @param x (named) numeric vector
+#' @param color single color or vector of colors
+#' @param ... arguments passed to geom_bar()
+#'
+#' @export
+#'
+#' @examples
+#' ggbar(1:10)
+#' ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5) + ylab("value")
+ggbar <- function(x, color = NULL, ...){
+
+  df <- data.frame(row.names = names(x), x = seq(x), y = x)
+  if (!is.null(names(x))) df$x <- factor(names(x), ordered = TRUE, levels = names(x))
+
+  fill <- NULL
+  if (length(color) > 1) df$fill <- color
+
+  gg <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(x, y, fill = fill)) +
+    theme_basic() +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(0)) +
+    ggplot2::xlab("") +
+    ggplot2::ylab("")
+
+  if (length(color) == 1){
+    gg <- gg + ggplot2::geom_bar(stat = "identity", fill = color, ...)
+  } else {
+    gg <- gg + ggplot2::geom_bar(stat = "identity", ...)
+  }
+
+  if (length(color) > 1) gg <- gg + ggplot2::scale_fill_identity(guide = "none")
+
+  gg
+}
+
+
+
+
+
+
+
+
+ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend = NULL, ...){
+
+  cols <- rlang::enquo(columns)
+
+  if (is.null(label)) label <- nrow(design) <= 30
+  if (is.null(legend)) legend <- nrow(design) > 30
+
+  design <- dplyr::select(design, !!cols)
+
+  # if (is.null(colors)) colors <- getColors(design) # remove NA colors
+
+  design$Sample <- rownames(design)
+  df <- tidyr::pivot_longer(design, cols = -Sample, names_to = "Factor")
+
+  # add clusters?
+
+  gg <- ggplot2::ggplot(data = df, mapping = aes(x = Factor, y = Sample, fill = value, label = value)) +
+    theme_bw() +
+    theme(panel.border = element_blank(),
+          axis.line = element_blank(),
+          axis.ticks = element_blank(),
+          panel.grid = element_blank(),
+          axis.text = element_text(colour = "black")) +
+    geom_tile() +
+    scale_x_discrete(position = "top") +
+    # scale_fill_manual(values = colors) +
+    xlab("") + ylab("")
+
+
+  if (label == TRUE) gg <- gg + geom_text()
+  if (legend == FALSE) gg <- gg + theme(legend.position = "none")
+
+  gg
+}
+
+
+
+
+
+
+
+
+
 #' Principal component analysis and plotting of data
 #'
 #' @description
@@ -96,6 +182,123 @@ ggpca <- function(data, design = NULL, mapping = aes(), center = TRUE, scale = T
 
 
 
+#' Save ggplot as pdf
+#'
+#' @param gg
+#' @param file
+#' @param width
+#' @param height
+#' @param dpi
+#' @param units
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggpdf <- function(gg, file, width = 3000, height = 2500, dpi = 300, units = "px", ...){
+  if (length(file) > 1) file <- do.call(file.path, as.list(file))
+  if (nat(baseext(file) != "pdf")) file <- paste0(file, ".pdf")
+  ggplot2::ggsave(filename = file, plot = gg, width = width, height = height, dpi = 300, units = units, device = "pdf", ...)
+  invisible(gg)
+}
+
+
+#' Save ggplot as png
+#'
+#' @param gg
+#' @param file
+#' @param width
+#' @param height
+#' @param dpi
+#' @param units
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggpng <- function(gg, file, width = 3000, height = 2500, dpi = 300, units = "px", ...){
+  if (length(file) > 1) file <- do.call(file.path, as.list(file))
+  if (nat(baseext(file) != "png")) file <- paste0(file, ".png")
+  ggplot2::ggsave(filename = file, plot = gg, width = width, height = height, dpi = 300, units = units, device = "png", type = "cairo", ...)
+  invisible(gg)
+}
+
+
+
+
+
+
+
+
+gg_getLimits <- function(gg){
+  gb <- ggplot2::ggplot_build(gg)
+  x <- gb$layout$panel_params[[1]]$x.range
+  y <- gb$layout$panel_params[[1]]$y.range
+  list(x = x, y = y)
+}
+
+
+gg_getGeoms <- function(gg){
+  sapply(gg$layers, function(tmp) class(get("geom", tmp))[1] )
+}
+
+
+
+ggstat <- function(data, mapping, type = sd, barwidth = 0.1, ...){
+
+  # input
+  data <- data.frame(data)
+  x <- mapping[["x"]]
+  y <- mapping[["y"]]
+  group_by <- mapping[["colour"]]
+  type <- rlang::enquo(type) # must be sd, var or se
+
+  # summarize data
+  statsdf <- subset(data, !is.na(rlang::as_name(x)) & !is.na(rlang::as_name(y))) %>%
+    group_by(!!group_by, !!x) %>% summarize(mean = mean(!!y, na.rm = TRUE),
+                                            var = var(!!y, na.rm = TRUE),
+                                            sd = sd(!!y, na.rm = TRUE),
+                                            n = n())
+
+  statsdf %<>% mutate(se = sqrt(var/n) )
+  statsdf %<>% mutate(ymin = mean - !!type, ymax = mean + !!type)
+
+  # ggplot
+  ggs <- ggplot2::ggplot(data = statsdf, mapping = aes(x = !!x, y = mean, colour = !!group_by)) + # mean values as default data
+    ggplot2::geom_point(data = data, mapping = mapping) +
+    geom_errorbar(aes(ymin = ymin, max = ymax), width = barwidth, ...) +
+    ylab(rlang::as_name(y))
+
+  getbw <- function(ggs, barwidth){diff(gg_getLimits(ggs)$x) * barwidth}
+  ggs$layers[[which(gg_getGeoms(ggs) == "GeomErrorbar")]]$geom_params$width <- getbw(ggs, barwidth) # consistent bar widths
+  ggs
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Heatmap functions ----
 
@@ -162,6 +365,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   if (title == FALSE) title <- " "
 
   heatdata <- eval(datacall, envir = parent.frame())
+  heatdata <- data.matrix(heatdata)
   heatdata <- matScale(heatdata, rows = grepl("row", scale, ignore.case = TRUE), cols = grepl("col", scale, ignore.case = TRUE))
 
   ### Clustering ----
@@ -214,10 +418,10 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
 
   # Legends
   # see ?`color_mapping_legend,ColorMapping-method`
-  legend_params <- list(title_gp = gpar(fontsize = fontsize, fontface = "bold"),
+  legend_params <- list(title_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
                         legend_height = unit(0.2, "npc"),
                         border = legend_border,
-                        labels_gp = gpar(fontsize = fontsize))
+                        labels_gp = grid::gpar(fontsize = fontsize))
 
 
   # Row annotation
@@ -293,21 +497,23 @@ getCXanno <- function(df = NULL, side = "top", colors = NULL, fontsize = 12, gap
 
   if (is.null(df)) return(list())
 
-  ComplexHeatmap::HeatmapAnnotation(df = df,
-                                    name = side,
-                                    annotation_label = colnames(df),
-                                    which = ifelse(side %in% c("top", "bottom"), "column", "row"),
-                                    col = colors[names(colors) %in% colnames(df)],
-                                    show_annotation_name = TRUE,
-                                    gap = unit(gap, "cm"),
-                                    border = FALSE,
-                                    gp = grid::gpar(col = rgb(0,0,0)),
-                                    annotation_name_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
-                                    simple_anno_size_adjust = TRUE,
-                                    annotation_name_side = ifelse(side %in% c("top", "bottom"), "right", "top"),
-                                    annotation_legend_param = legend_params,
-                                    show_legend = legend,
-                                    ...)
+  args <- list(df = df,
+               name = side,
+               annotation_label = colnames(df),
+               which = ifelse(side %in% c("top", "bottom"), "column", "row"),
+               col = colors[names(colors) %in% colnames(df)],
+               show_annotation_name = TRUE,
+               gap = unit(gap, "cm"),
+               border = FALSE,
+               gp = grid::gpar(col = rgb(0,0,0)),
+               annotation_name_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
+               simple_anno_size_adjust = TRUE,
+               annotation_name_side = ifelse(side %in% c("top", "bottom"), "right", "top"),
+               annotation_legend_param = legend_params,
+               show_legend = legend,
+               ...)
+
+  do.call(ComplexHeatmap::HeatmapAnnotation, args)
 
 }
 
