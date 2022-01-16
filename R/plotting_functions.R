@@ -12,7 +12,7 @@
 #'
 #' @examples
 #' ggbar(1:10)
-#' ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5) + ylab("value")
+#' ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5)
 ggbar <- function(x, color = NULL, ...){
 
   df <- data.frame(row.names = names(x), x = seq(x), y = x)
@@ -45,37 +45,56 @@ ggbar <- function(x, color = NULL, ...){
 
 
 
-ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend = NULL, ...){
+#' Plot experimental design matrix
+#'
+#' @param design
+#' @param columns
+#' @param colors
+#' @param label
+#' @param legend
+#' @param fontsize
+#' @param nacol
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend = NULL, fontsize = 15, nacol = "grey70", ...){
 
   cols <- rlang::enquo(columns)
 
   if (is.null(label)) label <- nrow(design) <= 30
   if (is.null(legend)) legend <- nrow(design) > 30
 
-  design <- dplyr::select(design, !!cols)
+  if (!rlang::quo_is_null(cols)) design <- dplyr::select(design, !!cols)
 
-  # if (is.null(colors)) colors <- getColors(design) # remove NA colors
+  tmp <- design[,!colnames(design) %in% names(colors), drop = FALSE]
+  colors <- c(colors, getColors(tmp))
 
   design$Sample <- rownames(design)
   df <- tidyr::pivot_longer(design, cols = -Sample, names_to = "Factor")
+  df$Factor <- factor(df$Factor, ordered = TRUE, levels = colnames(design))
+  df$Sample <- factor(df$Sample, ordered = TRUE, levels = rev(rownames(design)))
 
-  # add clusters?
+  gg <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(x = Factor, y = Sample, fill = value, label = value, ...)) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(panel.border = ggplot2::element_blank(),
+          axis.line = ggplot2::element_blank(),
+          axis.ticks = ggplot2::element_blank(),
+          panel.grid = ggplot2::element_blank(),
+          axis.text = ggplot2::element_text(colour = "black", size = fontsize)) +
+    ggplot2::geom_tile() +
+    ggplot2::scale_x_discrete(position = "top") +
+    ggplot2::xlab("") + ggplot2::ylab("")
 
-  gg <- ggplot2::ggplot(data = df, mapping = aes(x = Factor, y = Sample, fill = value, label = value)) +
-    theme_bw() +
-    theme(panel.border = element_blank(),
-          axis.line = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid = element_blank(),
-          axis.text = element_text(colour = "black")) +
-    geom_tile() +
-    scale_x_discrete(position = "top") +
-    # scale_fill_manual(values = colors) +
-    xlab("") + ylab("")
+    if (!is.null(colors)){
+      gg <- gg + ggplot2::scale_fill_manual(values = unlist(setNames(colors[names(colors) %in% colnames(design)], NULL), recursive = FALSE), na.value = nacol, guide = "none")
+    }
 
 
-  if (label == TRUE) gg <- gg + geom_text()
-  if (legend == FALSE) gg <- gg + theme(legend.position = "none")
+  if (label == TRUE) gg <- gg + ggplot2::geom_text(size = fontsize/ggplot2::.pt, alpha = 0.6)
+  if (legend == FALSE) gg <- gg + ggplot2::theme(legend.position = "none")
 
   gg
 }
@@ -112,7 +131,7 @@ ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend
 #' @export
 #'
 #' @examples
-ggpca <- function(data, design = NULL, mapping = aes(), center = TRUE, scale = TRUE, na = NULL, n = NULL, label = FALSE, digits = 2, colors = NULL, size = 3.5, return_data = FALSE, ...){
+ggpca <- function(data, design = NULL, mapping =  ggplot2::aes(), center = TRUE, scale = TRUE, na = NULL, n = NULL, label = FALSE, digits = 2, colors = NULL, size = 3.5, return_data = FALSE, ...){
 
   # tidy data case
 
@@ -159,17 +178,17 @@ ggpca <- function(data, design = NULL, mapping = aes(), center = TRUE, scale = T
 
   gg <- ggplot2::ggplot(data = pca_df, mapping = base_aes) +
     ggplot2::theme_classic(base_size = 20) +
-    ggplot2::theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
-                   axis.text = element_text(color = "black"),
-                   axis.ticks = element_line(color = "black")) +
+    ggplot2::theme(panel.border =  ggplot2::element_rect(color = "black", fill = NA, size = 1),
+                   axis.text =  ggplot2::element_text(color = "black"),
+                   axis.ticks =  ggplot2::element_line(color = "black")) +
     ggplot2::geom_point(size = size) +
     ggplot2::xlab(paste0("PC1 (", round(100*variance_explained[1], digits), "%)")) +
     ggplot2::ylab(paste0("PC2 (", round(100*variance_explained[2], digits), "%)")) +
-    ggplot2::scale_x_continuous(expand = expansion(mult = c(0.2,0.2))) +
-    ggplot2::scale_y_continuous(expand = expansion(mult = c(0.2,0.2)))
+    ggplot2::scale_x_continuous(expand =  ggplot2::expansion(mult = c(0.2,0.2))) +
+    ggplot2::scale_y_continuous(expand =  ggplot2::expansion(mult = c(0.2,0.2)))
 
-  if (label == TRUE) gg <- gg + geom_text_repel(size = 5, show.legend = F, min.segment.length = 2)
-  if (!is.null(colors)) gg <- gg + scale_color_manual(values = colors[[rlang::as_name(base_aes[["colour"]])]])
+  if (label == TRUE) gg <- gg +  ggplot2::geom_text_repel(size = 5, show.legend = F, min.segment.length = 2)
+  if (!is.null(colors)) gg <- gg +  ggplot2::scale_color_manual(values = colors[[rlang::as_name(base_aes[["colour"]])]])
 
   gg
 
@@ -246,6 +265,18 @@ gg_getGeoms <- function(gg){
 
 
 
+#' Ggplot with errorbars
+#'
+#' @param data
+#' @param mapping
+#' @param type
+#' @param barwidth
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggstat <- function(data, mapping, type = sd, barwidth = 0.1, ...){
 
   # input
@@ -275,24 +306,6 @@ ggstat <- function(data, mapping, type = sd, barwidth = 0.1, ...){
   ggs$layers[[which(gg_getGeoms(ggs) == "GeomErrorbar")]]$geom_params$width <- getbw(ggs, barwidth) # consistent bar widths
   ggs
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -340,7 +353,7 @@ ggstat <- function(data, mapping, type = sd, barwidth = 0.1, ...){
 #' @export
 #'
 #' @examples
-#' cxheatmap(rmat(50, 30), coldf = data.frame(row.names = colnames(rmat(50, 30)), group = sample(LETTERS[1:5], size = 30, replace = T)))
+#' cxheatmap(rmat(50, 30), coldf = data.frame(row.names = colnames(rmat(50, 30)), group = sample(LETTERS[1:5], size = 30, replace = TRUE)))
 #' cxheatmap(rmat(50, 30), border = c("black", 2))
 #'
 #' @seealso https://jokergoo.github.io/ComplexHeatmap-reference/book/
@@ -384,6 +397,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
 
   # annotation colors
   docol <- setdiff(unlist(lapply(list(coldf, rowdf), colnames)), names(colors))
+  addcol <- NULL
   if (length(docol) > 0){
     if (!is.null(coldf)) all <- coldf
     if (!is.null(rowdf)) all <- rowdf
@@ -397,15 +411,15 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   # cell border
   if (is.null(border)){
     if (nrow(heatdata) < 100 & ncol(heatdata) < 100){
-      border <- grid::gpar(col = rgb(1,1,1), lwd = unit(1, "pt"))
+      border <- grid::gpar(col = rgb(1,1,1), lwd = grid::unit(1, "pt"))
     } else {
       border <- grid::gpar(col = NA)
     }
   } else {
     if (any(border == TRUE)){
-      border <- grid::gpar(col = rgb(1,1,1), lwd = unit(1, "pt"))
+      border <- grid::gpar(col = rgb(1,1,1), lwd = grid::unit(1, "pt"))
     } else if (length(border) > 1){
-       border <- grid::gpar(col = border[is.na(as.numeric(border))], lwd = unit(as.numeric(border)[!is.na(as.numeric(border))], "pt"))
+       border <- grid::gpar(col = border[is.na(as.numeric(border))], lwd = grid::unit(as.numeric(border)[!is.na(as.numeric(border))], "pt"))
     } else {
        border <- grid::gpar(col = NA)
     }
@@ -419,7 +433,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   # Legends
   # see ?`color_mapping_legend,ColorMapping-method`
   legend_params <- list(title_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
-                        legend_height = unit(0.2, "npc"),
+                        legend_height = grid::unit(0.2, "npc"),
                         border = legend_border,
                         labels_gp = grid::gpar(fontsize = fontsize))
 
@@ -455,7 +469,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
     if (!is.logical(mat)) stop("'Mat' must be a logical indicator of whether cells should be marked!")
     cellmat <- mat[rownames(heatdata), colnames(heatdata)]
     cellFUN <- function(j, i, x, y, width, height, fill){
-      if (naf(cellmat[i,j] == TRUE)){ grid.points(x, y, pch = markshape, size = unit(marksize, "pt")) }
+      if (naf(cellmat[i,j] == TRUE)){ grid::grid.points(x, y, pch = markshape, size = unit(marksize, "pt")) }
     }
   }
 
@@ -471,8 +485,8 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
 
   hm <- ComplexHeatmap::Heatmap(name = title,
                                 matrix = heatdata,
-                                row_names_max_width = unit(0.3, "npc"),
-                                column_names_max_height = unit(0.3, "npc"),
+                                row_names_max_width = grid::unit(0.3, "npc"),
+                                column_names_max_height = grid::unit(0.3, "npc"),
                                 column_title_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
                                 rect_gp = border,
                                 na_col = na_col,
@@ -503,7 +517,7 @@ getCXanno <- function(df = NULL, side = "top", colors = NULL, fontsize = 12, gap
                which = ifelse(side %in% c("top", "bottom"), "column", "row"),
                col = colors[names(colors) %in% colnames(df)],
                show_annotation_name = TRUE,
-               gap = unit(gap, "cm"),
+               gap = grid::unit(gap, "cm"),
                border = FALSE,
                gp = grid::gpar(col = rgb(0,0,0)),
                annotation_name_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),

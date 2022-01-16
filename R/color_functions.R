@@ -44,11 +44,7 @@ showColors <- function(colors){
 #' @examples
 getColors <- function(dataframe){
 
-  ### Function to generate colors for columns in dataframe
-
   if (class(dataframe) != "data.frame") dataframe <- data.frame(dataframe)
-
-  stopifnot(require("paletteer"))
 
   if (is.null(dataframe)) return(NULL)
   if (ncol(dataframe) == 0) return(NULL)
@@ -57,27 +53,85 @@ getColors <- function(dataframe){
 
 
   ### Discrete
-  dataframe.discrete <- dataframe[,sapply(dataframe, is.factor) | sapply(dataframe, is.character),drop=FALSE]
+  dataframe.discrete <- dataframe[, sapply(dataframe, is.factor) | sapply(dataframe, is.character), drop=FALSE]
+  n <- sapply(dataframe.discrete, function(x) length(unique(x)))
 
-  pals <- subset(palettes_d_names, type == "qualitative")
-  pals <- pals[order(pals$length),]
-  pals$used <- FALSE
+  colors <- genPalettes(n = NULL, length_each = n)
 
-  for (i in seq_along(colnames(dataframe.discrete))){
+  colors <- lapply(seq_along(colors), function(i){
+    tmp <- colors[[i]]
+    names(tmp) <- unique(dataframe.discrete[[i]])
+    tmp
+  })
 
-    elem <- unique(dataframe.discrete[[i]])
-    usepal <- which(pals$length >= length(elem) & !pals$used)[1]
+  names(colors) <- colnames(dataframe.discrete)
 
-    if (!is.na(usepal)){
-      pals$used[usepal] <- TRUE
-      tmpcol <- palettes_d[[pals$package[usepal]]][[pals$palette[usepal]]]
-      tmpcol <- tmpcol[1:length(elem)]
-      colors[[colnames(dataframe.discrete)[i]]] <- setNames(tmpcol, elem)
-    }
+  colors
+}
+
+
+
+#' Generate distinct color palettes
+#'
+#' @param n Number of palettes
+#' @param length_each Length of each palette (either a single digit or a vector of length n)
+#' @param dist Distance between palettes
+#' @param saturation
+#' @param lightness
+#' @param cvd
+#' @param cvd_severity
+#' @param seed
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' genPalettes(n = 10) %L>% showColors()
+genPalettes <- function(n = 1, length_each = 3, dist = 0.75, saturation = c(0.5, 0.7), lightness = c(0.5, 0.7), cvd = "protan", cvd_severity = 0.2, seed = 123, ...){
+
+  if (is.null(n)){
+    n <- length(length_each)
   }
 
-  return(colors)
+  if (length(length_each) == 1 & n != 1){
+    length_each <- rep(length_each, n)
+  }
+
+  if (length(length_each) != n){
+    stop("Please provide the number of colors to generate in each palette!")
+  }
+
+  # generate colorspaces for each palette
+  rel <- (0:n)/(n)
+  drel <- mean(diff(rel))
+  sep <- 1 - dist
+  init <- scales::rescale(rel, from = c(min(rel)-drel*sep, max(rel)+drel*sep), to = c(1, 359))
+  d <- mean(diff(init))
+
+  set.seed(seed)
+  init <- init[-length(init)] + d * runif(1)
+  spaces <- lapply(init, function(tmp){
+    list(h = c(tmp - d * sep, tmp + d * sep), s = saturation, l = lightness)
+  })
+
+  # generate palette colors
+  pals <- lapply(1:n, function(i){
+    qualpalr::qualpal(n = length_each[i], colorspace = spaces[[i]], cvd_severity = cvd_severity, cvd = cvd, ...)$hex
+  })
+
+  # sort by approximate brightness
+  pals <- lapply(pals, function(pal){
+    ix <- order(grDevices::rgb2hsv(grDevices::col2rgb(pal))["v",], decreasing = TRUE)
+    pal[ix]
+  })
+
+  names(pals) <- names(length_each)
+  pals
 }
+
+
+
 
 
 
@@ -100,37 +154,33 @@ getColors <- function(dataframe){
 #' @examples
 theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_size/22, base_rect_size = base_size/22, base_color = "black", grid = FALSE, ...){
 
-  th <- ggplot2::theme_bw(base_size = base_size,
+  th1 <- ggplot2::theme_bw(base_size = base_size,
                           base_family = base_family,
                           base_line_size = base_line_size,
                           base_rect_size = base_rect_size)
 
-  th <- th %+replace%
-    ggplot2::theme(line = element_line(colour = base_color, size = base_line_size),
-                   rect = element_rect(colour = base_color, fill = NA, size = base_rect_size),
-                   text = element_text(colour = base_color, size = base_size, family = base_family),
-                   title = element_text(colour = base_color),
-                   axis.text = element_text(colour = base_color, size = rel(0.75)),
-                   axis.ticks = element_line(colour = base_color),
-                   axis.line = element_line(colour = base_color),
-                   legend.text = element_text(colour = base_color),
-                   legend.title = element_text(colour = base_color),
+  th2 <- ggplot2::theme(line =  ggplot2::element_line(colour = base_color, size = base_line_size),
+                   rect =  ggplot2::element_rect(colour = base_color, fill = NA, size = base_rect_size),
+                   text =  ggplot2::element_text(colour = base_color, size = base_size, family = base_family),
+                   title =  ggplot2::element_text(colour = base_color),
+                   axis.text =  ggplot2::element_text(colour = base_color, size =  ggplot2::rel(0.75)),
+                   axis.ticks =  ggplot2::element_line(colour = base_color),
+                   axis.line =  ggplot2::element_line(colour = base_color),
+                   legend.text =  ggplot2::element_text(colour = base_color),
+                   legend.title =  ggplot2::element_text(colour = base_color),
                    legend.title.align = 0,
-                   panel.border = element_blank(),
-                   panel.grid = element_blank(),
-                   plot.title = element_text(colour = base_color),
-                   strip.background = element_blank(),
-                   strip.text = element_text(colour = base_color),
+                   panel.border =  ggplot2::element_blank(),
+                   panel.grid =  ggplot2::element_blank(),
+                   plot.title =  ggplot2::element_text(colour = base_color),
+                   strip.background =  ggplot2::element_blank(),
+                   strip.text =  ggplot2::element_text(colour = base_color),
                    ...)
 
+  th <- ggplot2::`%+replace%`(th1, th2)
 
   th
 
 }
-
-#
-# pal <- qualpalr::autopal(10, colorspace = "pretty_dark")
-# showColors(pal$hex)
 
 
 

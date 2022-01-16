@@ -1,5 +1,5 @@
 Package: datamisc
-Title: Various functions for data handling.
+Title: Various functions for data handling
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Alexander",
@@ -13,36 +13,45 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
-Suggests: 
+Suggests:
+    colorDF,
+    colourpicker,
+    cowplot,
+    crayon,
+    dendsort,
     knitr,
+    missMDA,
+    plyr,
+    prismatic,
+    qualpalr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    rms,
+    survival,
+    survminer,
+    testthat (>= 3.0.0),
+    tibble,
+    tidyr,
+    yaml
 Config/testthat/edition: 3
 biocViews:
 Imports: 
-    magrittr,
-    dplyr,
-    ggplot2,
-    matrixStats,
     ggrepel,
+    ggplot2,
     rlang,
     scales,
-    colourpicker,
-    prismatic,
-    survival,
-    survminer,
     openxlsx,
-    BiocParallel,
     ComplexHeatmap,
     circlize,
-    dendsort,
-    paletteer,
-    patchwork,
-    DESeq2,
     ggdendro,
+    paletteer,
+    BiocParallel,
+    patchwork,
     limma,
     edgeR,
+    DESeq2,
     GSVA,
     fgsea,
-    crayon
+    tximport,
+    magrittr,
+    dplyr
 VignetteBuilder: knitr

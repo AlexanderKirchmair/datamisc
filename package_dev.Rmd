@@ -12,7 +12,7 @@ library(testthat)
 
 
 https://r-pkgs.org/
-
+https://pkgdown.r-lib.org/index.html
 
 To do:
 * add easyverse
@@ -42,15 +42,13 @@ use_package("ggplot2")
 use_package("ggrepel")
 use_package("rlang")
 use_package("scales")
-use_package("colourpicker")
-use_package("prismatic")
-use_package("rlang")
-use_package("survival")
-use_package("survminer")
+use_package("magrittr")
+use_package("dplyr")
+
 use_package("openxlsx")
 use_package("ComplexHeatmap")
 use_package("circlize")
-use_package("dendsort")
+
 use_package("ggdendro")
 use_package("paletteer")
 use_package("BiocParallel")
@@ -60,14 +58,34 @@ use_package("edgeR")
 use_package("DESeq2")
 use_package("GSVA")
 use_package("fgsea")
-use_package("crayon")
+use_package("tximport")
+
+use_package("colorDF", type = "Suggests")
+use_package("colourpicker", type = "Suggests")
+use_package("prismatic", type = "Suggests")
+use_package("dendsort", type = "Suggests")
+use_package("crayon", type = "Suggests")
+use_package("qualpalr", type = "Suggests")
+
+use_package("survival", type = "Suggests")
+use_package("survminer", type = "Suggests")
+use_package("rms", type = "Suggests")
+
+use_package("cowplot", type = "Suggests")
+use_package("missMDA", type = "Suggests")
+use_package("plyr", type = "Suggests")
+use_package("tibble", type = "Suggests")
+use_package("tidyr", type = "Suggests")
+use_package("yaml", type = "Suggests")
 
 ```
 
 Add R scripts
 ```{r}
 
-use_r("meta_functions.R")
+# use_r("meta_functions.R")
+use_r("")
+
 
 ```
 
@@ -84,7 +102,7 @@ document()
 
 ```{r}
 
-usethis::use_vignette("survival")
+# usethis::use_vignette("survival")
 
 
 ```

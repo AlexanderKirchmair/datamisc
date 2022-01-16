@@ -18,5 +18,5 @@ Ggplot2 barplot
 }
 \examples{
 ggbar(1:10)
-ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5) + ylab("value")
+ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5)
 }

@@ -96,7 +96,7 @@ cxheatmap(
 Heatmap plotting with ComplexHeatmap
 }
 \examples{
-cxheatmap(rmat(50, 30), coldf = data.frame(row.names = colnames(rmat(50, 30)), group = sample(LETTERS[1:5], size = 30, replace = T)))
+cxheatmap(rmat(50, 30), coldf = data.frame(row.names = colnames(rmat(50, 30)), group = sample(LETTERS[1:5], size = 30, replace = TRUE)))
 cxheatmap(rmat(50, 30), border = c("black", 2))
 
 }

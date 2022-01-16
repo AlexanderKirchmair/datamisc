@@ -7,7 +7,7 @@
 ggpca(
   data,
   design = NULL,
-  mapping = aes(),
+  mapping = ggplot2::aes(),
   center = TRUE,
   scale = TRUE,
   na = NULL,

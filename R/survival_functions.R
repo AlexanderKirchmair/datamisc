@@ -164,26 +164,26 @@ ggplotForest <- function(df, x = H, y = term, color = -log10(pval), ptres = 0.05
   # add v. segments if cut-off
 
   # Ggplot
-  ggplot(df, aes(x = !!x, y = !!y, color = !!color)) +
-    theme_minimal() +
-    theme(axis.text = element_text(colour = "black"),
-          axis.line.x = element_line(colour = "black"),
-          axis.ticks.x = element_line(colour = "black"),
+  ggplot2::ggplot(df, ggplot2::aes(x = !!x, y = !!y, color = !!color)) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(axis.text = ggplot2::element_text(colour = "black"),
+          axis.line.x = ggplot2::element_line(colour = "black"),
+          axis.ticks.x = ggplot2::element_line(colour = "black"),
           panel.grid.major.x = grid_line,
-          panel.grid.major.y = element_blank(),
+          panel.grid.major.y = ggplot2::element_blank(),
           panel.grid.minor = grid_line) +
-    geom_rect(aes(fill = odd), color = NA, show.legend = FALSE,
+    ggplot2::geom_rect(ggplot2::aes(fill = odd), color = NA, show.legend = FALSE,
               ymin = as.numeric(df[[ycol]])-0.5, ymax = as.numeric(df[[ycol]])+0.5, xmin = log10(xlim[1]), xmax = log10(xlim[2])) +
-    geom_vline(xintercept = 1, colour = "grey50") +
-    geom_segment(aes(x = CI95_lower, xend = CI95_upper, y = !!y, yend = !!y), color = "black") +
-    geom_point(aes(shape = sig), size = 2.8) +
-    scale_x_continuous(limits = xlim, trans = "log10", expand = ggplot2::expansion(0,0)) +
-    xlab("") +
-    coord_cartesian(clip = "off") +
-    scale_fill_manual(values = c("odd" = rgb(1,1,1,0), "even" = rgb(0,0,0,0.1))) +
-    scale_color_gradient(low = rgb(0,0,0), high = rgb(1,0,0)) +
-    scale_shape_manual("signif.", values = setNames(c(0,15), siglab[c("nonsig", "sig")])) +
-    ylab("")
+    ggplot2::geom_vline(xintercept = 1, colour = "grey50") +
+    ggplot2::geom_segment(aes(x = CI95_lower, xend = CI95_upper, y = !!y, yend = !!y), color = "black") +
+    ggplot2::geom_point(ggplot2::aes(shape = sig), size = 2.8) +
+    ggplot2::scale_x_continuous(limits = xlim, trans = "log10", expand = ggplot2::expansion(0,0)) +
+    ggplot2::xlab("") +
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::scale_fill_manual(values = c("odd" = rgb(1,1,1,0), "even" = rgb(0,0,0,0.1))) +
+    ggplot2::scale_color_gradient(low = rgb(0,0,0), high = rgb(1,0,0)) +
+    ggplot2::scale_shape_manual("signif.", values = setNames(c(0,15), siglab[c("nonsig", "sig")])) +
+    ggplot2::ylab("")
 
 }
 
@@ -341,7 +341,7 @@ ggplotSurv <- function(fit, data = NULL, xlabel = "time", ylabel = "survival", t
                    risk.table = FALSE,
                    pval = pstr,
                    # palette = setNames(colors, NA),
-                   ggtheme = theme_classic(base_size = base_size),
+                   ggtheme = ggplot2::theme_classic(base_size = base_size),
                    pval.size = base_size*0.35,
                    risk.table.y.text.col = TRUE,
                    risk.table.y.text = FALSE,
@@ -354,19 +354,19 @@ ggplotSurv <- function(fit, data = NULL, xlabel = "time", ylabel = "survival", t
 
   suppressMessages(
     gp$plot <- gp$plot +
-      scale_x_continuous(expand = c(0, 0.2)) +
-      scale_y_continuous(expand = c(0, 0), limits = c(0,1)) +
-      theme(axis.text = element_text(colour = "black", size = base_size),
-            axis.line = element_line(lineend = "square"),
+      ggplot2::scale_x_continuous(expand = c(0, 0.2)) +
+      ggplot2::scale_y_continuous(expand = c(0, 0), limits = c(0,1)) +
+      ggplot2::theme(axis.text = ggplot2::element_text(colour = "black", size = base_size),
+            axis.line = ggplot2::element_line(lineend = "square"),
             legend.position = "right",
-            legend.background = element_blank(),
-            legend.text = element_text(size = rel(0.7)),
-            plot.margin = margin(0.05,0.1,0.05,0.05, unit = "npc"),
-            plot.title = element_text(hjust = 0.5, size = base_size)) +
-      coord_cartesian(clip = "off") +
-      ggtitle(title))
+            legend.background = ggplot2::element_blank(),
+            legend.text = ggplot2::element_text(size = ggplot2::rel(0.7)),
+            plot.margin = ggplot2::margin(0.05,0.1,0.05,0.05, unit = "npc"),
+            plot.title = ggplot2::element_text(hjust = 0.5, size = base_size)) +
+      ggplot2::coord_cartesian(clip = "off") +
+      ggplot2::ggtitle(title))
 
-  if (rename == TRUE) gp$plot <- gp$plot + scale_color_manual(values = colors, labels = gnames)
+  if (rename == TRUE) gp$plot <- gp$plot + ggplot2::scale_color_manual(values = colors, labels = gnames)
 
   return(gp$plot)
 }

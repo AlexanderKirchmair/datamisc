@@ -21,6 +21,36 @@ head2 <- function(data, nrows = 15, ncols = 10, ...){
 }
 
 
+
+#' Return the middle n rows and columns of an object
+#'
+#' @param data
+#' @param nrows
+#' @param ncols
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+body <- function(data, nrows = 15, ncols = 10, ...){
+
+  nr <- nrow(data)
+  nc <- ncol(data)
+
+  rr <- round(mean(1:nr)) + c(-ceiling(nrows/2), floor(nrows/2)-1)
+  if (min(rr) < 1) rr <- rr - min(rr) + 1
+  if (max(rr) > nr) rr[2] <- nr
+
+  rc <- round(mean(1:nc)) + c(-ceiling(ncols/2), floor(ncols/2)-1)
+  if (min(rc) < 1) rc <- rc - min(rc) + 1
+  if (max(rc) > nc) rc[2] <- nc
+
+  data[rr[1]:rr[2], rc[1]:rc[2], drop = FALSE]
+
+}
+
+
 #' Limit number of characters in a string
 #'
 #' @param x character string
@@ -55,6 +85,24 @@ baseext <- function(path, ...){
   ext[!grepl(pattern = ".", x = path, fixed = TRUE)] <- NA
   ext
 }
+
+
+
+
+#' File path
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+fp <- function(...){
+  args <- list(...)
+  args <- lapply(args, paste0, collapse = "")
+  do.call(file.path, args)
+}
+
 
 
 #' Memory size of workspace objects
@@ -101,49 +149,76 @@ quo_class <- function(x, ...){
 
 
 
-
-
-#' Colored printing to compare two dataframes
+#' Pattern Matching and Replacement
 #'
-#' @param m1
-#' @param m2
-#' @param ncol
-#' @param digits
-#' @param sep
-#' @param width
+#' @param pattern Multiple patterns
+#' @param x
+#' @param ...
 #'
 #' @return
 #' @export
 #'
 #' @examples
-compare <- function(m1, m2, ncol = 10, digits = 3, sep = "/", width = 20){
+lgrep <- function(pattern, x, ...){
+  ix <- sapply(pattern, grep, x = x, ...)
+  sort(unique(unlist(ix)))
+}
 
-  m1 <- data.matrix(m1)
-  m2 <- data.matrix(m2)
+
+#' Colored printing to compare two dataframes
+#'
+#' @param df1
+#' @param df2
+#' @param ncol
+#' @param signif
+#' @param sep
+#' @param marker
+#' @param color
+#'
+#' @return
+#' @export
+#'
+#' @examples
+compareDF <- function(df1, df2, ncol = 10, signif = 3, sep = "/", marker = "*", color = "red"){
+
+  m1 <- data.matrix(df1)
+  m2 <- data.matrix(df2)
 
   stopifnot(all(dim(m1) == dim(m2)))
 
-  diff <- ifelse(naf(m1 == m2), "", "***")
-  diff[is.na(m1) | is.na(m2)] <- "***"
+  diff <- ifelse(naf(m1 == m2), "", marker)
+  diff[is.na(m1) | is.na(m2)] <- marker
   diff[is.na(m1) & is.na(m2)] <- ""
 
   com <- paste0(nar(as.character(unlist(signif(m1, digits))), "NA"), sep, nar(as.character(unlist(signif(m2, digits))), "NA"))
   com <- paste0(com, diff)
 
+  ix <- !grepl(marker, x = com, fixed = TRUE)
+  com[ix] <- m1[ix]
+
   out <-  matrix(com, nrow = nrow(m1), dimnames = dimnames(m1))
+
   if (!is.null(ncol)) out <- out[,1:ncol]
-  out[,ncol(out)] <- paste0( out[,ncol(out)], "\n")
 
-  out_col <- crayon::red(out[grepl("***", out, fixed = TRUE)])
-  out_col <- gsub("***", "", out_col, fixed = TRUE)
+  cdf <- data.frame(out)
+  cdf <- colorDF::df_search(cdf, pattern = "\\*")
 
-  out[grepl("***", out, fixed = TRUE)] <- out_col
+  attributes(cdf)$.style$id <- "universal"
+  attributes(cdf)$.style$sep <- NULL
+  attributes(cdf)$.style$col.names$bg <- NULL
+  attributes(cdf)$.style$col.names$fg <- "grey60"
+  attributes(cdf)$.style$row.names$fg <- "grey60"
+  attributes(cdf)$.style$col.names$align <- "center"
+  attributes(cdf)$.style$interleave$bg <- NULL
+  attributes(cdf)$.style$row.names$decoration <- "NULL"
+  attributes(cdf)$.style$type.styles$match$align <- "right"
+  attributes(cdf)$.style$type.styles$match$fg_match <- color
 
-  if (!is.null(rownames(m1))) out <- cbind(crayon::underline(rownames(m1)), out)
-
-  res <- apply(out, 1, function(x) cat(crayon::col_align(x, width, "right")) )
-  invisible(res)
+  colorDF::print_colorDF(cdf)
 }
+
+
+
 
 
 
@@ -249,6 +324,27 @@ rlist <- function(length = 5, items = 1:3, space = LETTERS){
   res <- lapply(1:length, function(x) sample(space, size = sample(c(items, items), size = 1)) )
   setNames(res, paste0(seq(res), "_", sapply(res, function(x) paste0(x, collapse = "") ) ))
 }
+
+
+
+
+
+rdataframe <- function(nrow = 5, ncol = 5){
+
+  df <- as.data.frame(lapply(1:ncol, function(i){
+    if (runif(1) > 0.5){
+      sample(sample(LETTERS, max(2, round(nrow/4))), size = nrow, replace = TRUE)
+    } else {
+      sample(as.character(1:(round(nrow/2))), size = nrow, replace = TRUE)
+    }
+  }))
+
+  colnames(df) <- sample(LETTERS, ncol(df))
+  df
+}
+
+
+
 
 
 
@@ -635,6 +731,40 @@ napply <- function(X, FUN, n, ...){
 
 
 
+#' Drop-in replacement for lapply to quickly identify failing items
+#'
+#' @param X
+#' @param FUN
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+dbugapply <- function(X, FUN, ...){
+
+  if (is.null(names(X)) | any(duplicated(names(X)))) stop("List must be uniquely named!")
+  x <- names(X)
+
+  res <- lapply(setNames(x, x), function(tmp){
+    tryCatch(
+      {
+        FUN(X[[tmp]])
+      },
+      error = function(msg){
+        message(paste0("Failed on ", tmp, ":"))
+        message(msg)
+      }
+    )
+  })
+
+  invisible(res)
+}
+
+
+
+
+
 ### Data processing ------
 
 
@@ -742,10 +872,10 @@ wtf <- function(x){
 
   if (length(x) > 3){
     message("Structure:")
-    print(str(x[1:3]))
+    print(utils::str(x[1:3]))
 
     message("First entry:")
-    print(head(x[[1]]))
+    print(utils::head(x[[1]]))
   }
 
 
