@@ -83,8 +83,8 @@ use_package("yaml", type = "Suggests")
 Add R scripts
 ```{r}
 
-# use_r("meta_functions.R")
-use_r("")
+use_r("meta_functions.R")
+use_r("plotting_functions")
 
 
 ```
@@ -95,7 +95,8 @@ Update documentation
 
 # Code > Insert Roxygen Skeleton
 document()
-
+# devtools::build_manual()
+# roxygen2::roxygenize()
 ```
 
 

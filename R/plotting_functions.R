@@ -2,43 +2,52 @@
 
 
 
-#' Ggplot2 barplot
+
+#' Barplots with ggplot2
 #'
-#' @param x (named) numeric vector
-#' @param color single color or vector of colors
-#' @param ... arguments passed to geom_bar()
+#' @param data
+#' @param aes
+#' @param colors
+#' @param ...
 #'
+#' @return
 #' @export
 #'
 #' @examples
-#' ggbar(1:10)
-#' ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5)
-ggbar <- function(x, color = NULL, ...){
+ggbar <- function(data, aes = NULL, colors = NULL, ...){
 
-  df <- data.frame(row.names = names(x), x = seq(x), y = x)
-  if (!is.null(names(x))) df$x <- factor(names(x), ordered = TRUE, levels = names(x))
+  if (is.null(dim(data))){
+    # vector input
+    df <- data.frame(row.names = names(data), x = seq_along(data), y = data)
+    if (!is.null(names(data))) df$x <- factor(names(data), ordered = TRUE, levels = names(data))
+    if (is.null(colors)) colors <- "#76a3b8"
+    aes <- ggplot2::aes(x, y)
+  } else {
+    # data.frame input
+    df <- data
+    if (is.null(df$x)) df$x <- 1:nrow(df)
+    if (is.null(df$y)) df$y <- df[[2]]
+    if (is.null(aes)) aes <- ggplot2::aes(x, y)
+  }
 
-  fill <- NULL
-  if (length(color) > 1) df$fill <- color
 
-  gg <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(x, y, fill = fill)) +
-    theme_basic() +
+  gg <- ggplot2::ggplot(data = df, mapping = aes) +
+    ggplot2::`%+replace%`(theme_basic(),
+                          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, size = 8, vjust = 0.5, hjust = 1))) +
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(0)) +
     ggplot2::xlab("") +
     ggplot2::ylab("")
 
-  if (length(color) == 1){
-    gg <- gg + ggplot2::geom_bar(stat = "identity", fill = color, ...)
+  if (length(colors) == 1){
+    gg <- gg + ggplot2::geom_bar(stat = "identity", fill = colors, ...)
   } else {
     gg <- gg + ggplot2::geom_bar(stat = "identity", ...)
   }
 
-  if (length(color) > 1) gg <- gg + ggplot2::scale_fill_identity(guide = "none")
+  if (length(colors) > 1) gg <- gg + ggplot2::scale_fill_manual(values = colors)
 
   gg
 }
-
-
 
 
 

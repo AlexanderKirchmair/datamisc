@@ -1,12 +1,6 @@
 
 
 
-# NOTE
-# colors should be stored in a list as following:
-# colors$factor = c(lev1 = "blue", lev2 = "red)
-# colors$continuous = c("min" = "blue", "mid" = "white", "max" = "red")
-
-
 
 #' Interactive color picker
 #'
@@ -31,6 +25,25 @@ showColors <- function(colors){
   if (missing(colors)) colors <- c("red", "green", "blue", sample(grDevices::colors(), 6))
   prismatic::color(colors)
 }
+
+
+
+
+#' Print in color
+#'
+#' @param str
+#' @param col
+#' @param add
+#'
+#' @return
+#' @export
+#'
+#' @examples
+colorcat <- function(str = "text", col = rgb(1,1,1), add = "\n"){
+  cat( crayon::make_style(col)(paste0(str, add)) )
+}
+
+
 
 
 

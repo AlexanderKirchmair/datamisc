@@ -855,6 +855,14 @@ clusterData <- function(data, method = "hclust", rows = NULL, cols = NULL, inf =
 
 
 
+#' What's this for?
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
 wtf <- function(x){
 
   cat("Class:", class(x), "\n")
@@ -881,6 +889,48 @@ wtf <- function(x){
 
   invisible(x)
 }
+
+
+
+#
+# newfun <- function(x, fun, ...){ fun(...); x }
+# m <- matrix(1:9, nrow = 3)
+# m[,last()] # not works in brackets
+# newfun(1, last) # works within function
+# (1:last())
+#
+# last <- function(test = rlang::trace_back(), where = topenv(parent.frame())){
+#   sys.function() %>% print()
+#   print(test)
+#   res <- list()
+#   res$par <- parent.frame()
+#   res$cur <- rlang::current_frame()
+#   res$stack <- sys.call()
+#   res$nframe <- sys.nframe()
+#   res$trace <- rlang::trace_back()
+#   res <<- res
+#
+#   # # fro, trace()
+#   call <- sys.call()
+#   call[[1L]] <- quote(methods::.TraceWithMethods)
+#   call$where <- where
+#   eval.parent(call) %>% print()
+#
+#   return(3)
+#
+# }
+
+
+
+usedir <- function(path){
+  stopifnot(class(path) == "character")
+  if (!dir.exists(path)){
+    dir.create(path = path, recursive = TRUE)
+  }
+}
+
+
+
 
 
 

@@ -144,3 +144,57 @@ nf_preprocessing <- function(multiqc_dir, design = NULL, ignore = FALSE){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#' Read gtf files
+#'
+#' @param file
+#' @param columns
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+readGTF <- function(file, columns = NULL, ...){
+
+  gtf <- rtracklayer::import(file)
+  gtf <- subset(gtf, ...)
+
+  if (is.null(columns)){
+    columns <- c("gene_name", "seqnames", "gene_type")
+    cat(paste0("Returning columns: ", paste(columns, collapse = ", ")))
+    cat(paste0("Available columns: ", paste(colnames(as.data.frame(head(gtf))), collapse = ", ")))
+  } else if ("all" %in% tolower(columns)){
+    columns <- colnames(as.data.frame(head(gtf)))
+  }
+
+  df <- as.data.frame(gtf)[,columns, drop = FALSE]
+  df <- dplyr::distinct(df)
+  df
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

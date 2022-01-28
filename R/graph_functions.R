@@ -1,0 +1,215 @@
+
+
+
+df2graph <- function(edges, nodes, directed = TRUE){
+
+  # add checks
+
+  graph <- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = directed)
+  graph <- tidygraph::as_tbl_graph(graph, stringsAsFactors = FALSE)
+  graph
+}
+
+
+node2edge <- function(graph, col = "stat", direction = "out", FUN = NULL, ...){
+
+  edf <- edgeData(graph)
+  ndf <- nodeData(graph)
+
+  val <- setNames(ndf[[col]], ndf$name)
+
+  if (direction == "out"){
+    edf[[col]] <- val[edf$from]
+  } else if (direction == "in"){
+    edf[[col]] <- val[edf$to]
+  } else if (direction == "both"){
+    if (is.null(FUN)) stop("Provide FUN to combine values!")
+    edf[[col]] <- apply(cbind(val[edf$from], val[edf$to]), 1, FUN, ...)
+  } else {
+    warning("'Direction' muste be one of: out, in. both")
+  }
+
+  df2graph(edf, ndf)
+}
+
+
+
+
+
+edgeData <- function(graph){
+  edf <- igraph::as_data_frame(x = graph, what = "edges")
+  edf <- subset(edf, ...)
+  edf
+}
+
+
+nodeData <- function(graph, ...){
+  ndf <- igraph::as_data_frame(x = graph, what = "vertices")
+  ndf <- subset(ndf, ...)
+  ndf
+}
+
+
+leafs <- function(graph, sources = TRUE, sinks = TRUE){
+
+
+
+
+
+
+
+}
+
+lcc <- function(graph){
+
+  # Function that returns the largest connected component of a network
+
+  subgraphs <- igraph::decompose.graph(graph) # decompose graph into disconnected subgraphs/components
+  subgraphs_nodes <- sapply(subgraphs, igraph::vcount) # get the number of nodes for each subgraph
+
+  if (any(subgraphs_nodes)){
+
+    ixlargest <- (1:length(subgraphs_nodes))[subgraphs_nodes == max(subgraphs_nodes)]
+    res <- subgraphs[[ixlargest[1]]] # select largest component
+
+    # messages
+    Vkept <- length(igraph::as_ids(igraph::V(res)))
+    Vorig <- length(igraph::as_ids(igraph::V(res)))
+
+
+    message(paste("Number of disconnected components is ", length(subgraphs), ".", sep = ""))
+    message(paste("The largest component has ", Vkept, " nodes.", sep = ""))
+    message(paste(Vorig - Vkept, " nodes were removed.", sep = ""))
+
+
+  } else {
+    print("No nodes found in graph.")
+    res <- graph
+  }
+
+
+  res
+}
+
+
+
+rgraph <- function(n = 20){
+
+  rnodes <- paste0(LETTERS, rep(1:3, each = length(LETTERS)))[1:n]
+  graph <- tidygraph::play_erdos_renyi(n = n, p = 0.1, loops = TRUE)
+  edf <- igraph::as_data_frame(graph)
+  edf <- rbind(edf, edf[sample(1:nrow(edf), round(nrow(edf)*0.3)),])
+  graph <- tidygraph::as_tbl_graph(igraph::graph_from_data_frame(edf))
+
+  graph
+}
+
+
+
+
+
+
+diffuse <- function(graph, nstat, estat, na = 0, maxiter = 1000, tresh = 0.001, decay = 1, fixed = TRUE, FUN = NULL, ...){
+
+  ndf <- nodeData(graph)
+  edf <- edgeData(graph)
+
+  ERR <- function(v, vdiff){
+    v <- as.numeric(v)
+    mean(abs( (v - as.numeric(vdiff))/v), na.rm = TRUE, trim = 0.1)
+  }
+
+
+
+  # Node diffusion ---
+
+  v <- ndf[[nstat]]
+  v_fixed <- !is.na(v)
+  v_free <- is.na(v)
+  v[is.na(v)] <- na
+
+  A <- igraph::as_adjacency_matrix(graph, sparse = TRUE) * decay
+  n <- rowSums(A != 0, na.rm = TRUE)
+
+  if (is.null(FUN)){
+    cat(crayon::blue("Network diffusion by matrix multiplication...\n"))
+
+    i <- 0
+    err <- Inf
+
+    if (fixed == TRUE){
+      while (i < maxiter & err > tresh){
+        i <- i + 1
+        vdiff <- (A %*% v)/n
+        err <- ERR(v[v_free], vdiff[v_free])
+        v[v_free] <- vdiff[v_free]
+      }
+    } else {
+      while (i < maxiter & err > tresh){
+        i <- i + 1
+        vdiff <- (A %*% v)/n
+        err <- ERR(v, vdiff)
+        v <- vdiff
+      }
+    }
+
+
+    cat(crayon::blue(paste0("Stopped after ", i, " iterations, error = ", signif(err, 5))))
+
+  } else {
+    cat(crayon::blue("Network diffusion using custom function...\n"))
+
+
+      vdiff <- FUN(v, A, ...)
+
+    cat(crayon::blue(paste0("Stopped after ", i, " iterations, error = ", signif(err, 5))))
+
+  }
+
+  ndf[[nstat]] <- as.numeric(v)
+  df2graph(edf, ndf)
+}
+
+
+
+subset.igraph <- function(graph, type, ...){
+
+  ndf <- nodeData(graph)
+  edf <- edgeData(graph)
+
+  if (type == "nodes"){
+    ndf <- subset(ndf, ...)
+    edf <- subset(edf, from %in% ndf$name & to  %in% ndf$name)
+
+  } else if (type == "edges"){
+    edf <- subset(edf, ...)
+    ndf <- subset(ndf, name %in% edf$from | name %in% edf$to)
+  }
+
+  df2graph(edf, ndf, directed = igraph::is.directed(graph))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

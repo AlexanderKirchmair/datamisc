@@ -2,21 +2,16 @@
 % Please edit documentation in R/plotting_functions.R
 \name{ggbar}
 \alias{ggbar}
-\title{Ggplot2 barplot}
+\title{Barplots with ggplot2}
 \usage{
-ggbar(x, color = NULL, ...)
+ggbar(data, aes = NULL, colors = NULL, ...)
 }
 \arguments{
-\item{x}{(named) numeric vector}
+\item{...}{}
+}
+\value{
 
-\item{color}{single color or vector of colors}
-
-\item{...}{arguments passed to geom_bar()}
 }
 \description{
-Ggplot2 barplot
-}
-\examples{
-ggbar(1:10)
-ggbar(setNames(1:5, LETTERS[1:5]), color = rgb((1:5)/5, 0.4, 0.4), width = 0.5)
+Barplots with ggplot2
 }
