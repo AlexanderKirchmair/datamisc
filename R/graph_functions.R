@@ -35,8 +35,46 @@ node2edge <- function(graph, col = "stat", direction = "out", FUN = NULL, ...){
 
 
 
+# map node data to edge source nodes
+sources <- function(graph, ...){
 
-edgeData <- function(graph){
+  edf <- edgeData(graph, ...)
+  ndf <- nodeData(graph)
+
+  if (is.null(edf$from) | is.null(ndf$name)){ stop("Error: missing node/edge ids!") }
+  df <- ndf[match(edf$from, ndf$name),, drop = FALSE]
+
+  rownames(df) <- rownames(edf)
+  stopifnot(nrow(edf) == nrow(df))
+
+  df
+}
+
+
+
+targets <- function(graph, ...){
+
+  edf <- edgeData(graph, ...)
+  ndf <- nodeData(graph)
+
+  if (is.null(edf$to) | is.null(ndf$name)){ stop("Error: missing node/edge ids!") }
+  df <- ndf[match(edf$to, ndf$name),, drop = FALSE]
+
+  rownames(df) <- rownames(edf)
+  stopifnot(nrow(edf) == nrow(df))
+
+  df
+}
+
+
+
+
+
+
+
+
+
+edgeData <- function(graph, ...){
   edf <- igraph::as_data_frame(x = graph, what = "edges")
   edf <- subset(edf, ...)
   edf
@@ -193,9 +231,44 @@ subset.igraph <- function(graph, type, ...){
 
 
 
+layout_with_ggrepel <- function(graph, labels = NULL, init = NULL, scale = TRUE, point_size = 0.01, point_padding_x = 0.01, point_padding_y = 0.01, ...){
+
+  stopifnot(requireNamespace("ggrepel"))
+
+  if (is.null(labels)) labels <- ""
+  if (is.null(init)) init <- graphlayouts::layout_with_stress(graph)
+  if (length(point_size) == 1) point_size <- rep(point_size, nrow(init))
+
+  xy <- init
+  if (scale == TRUE) xy <- apply(xy, 2, rangescale)
+  colnames(xy) <- c("x", "y")
+
+  xybox <- cbind(xy[,"x"] - point_padding_x/2 , xy[,"y"] - point_padding_x/2,
+                 xy[,"x"] + point_padding_x/2, xy[,"y"] + point_padding_y/2)
+
+  xyrep <- ggrepel:::repel_boxes2(data_points = xy,
+                                  point_size = point_size,
+                                  point_padding_x = point_padding_x,
+                                  point_padding_y = point_padding_y,
+                                  boxes = xybox,
+                                  xlim = range(c(xybox[,1], xybox[3])),
+                                  ylim = range(c(xybox[,2], xybox[4])),
+                                  hjust = rep(0.5, nrow(xy)),
+                                  force_push = 10^-6,
+                                  force_pull = 1.1*10^-6,
+                                  vjust = rep(0.5, nrow(xy)),
+                                  max_overlaps = Inf,
+                                  max_time = 60,
+                                  max_iter = 10^6, ...)
 
 
+  res <- xyrep[,c("x", "y")]
+  res <- as.matrix(res)
+  if (scale == TRUE) res <- apply(res, 2, rangescale)
+  dimnames(res) <- dimnames(xy)
+  res
 
+}
 
 
 

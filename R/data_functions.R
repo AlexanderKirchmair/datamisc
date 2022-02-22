@@ -190,7 +190,7 @@ compareDF <- function(df1, df2, ncol = 10, signif = 3, sep = "/", marker = "*", 
   diff[is.na(m1) | is.na(m2)] <- marker
   diff[is.na(m1) & is.na(m2)] <- ""
 
-  com <- paste0(nar(as.character(unlist(signif(m1, digits))), "NA"), sep, nar(as.character(unlist(signif(m2, digits))), "NA"))
+  com <- paste0(nar(as.character(unlist(signif(m1, signif))), "NA"), sep, nar(as.character(unlist(signif(m2, signif))), "NA"))
   com <- paste0(com, diff)
 
   ix <- !grepl(marker, x = com, fixed = TRUE)
@@ -218,6 +218,74 @@ compareDF <- function(df1, df2, ncol = 10, signif = 3, sep = "/", marker = "*", 
 }
 
 
+
+
+
+#' Column to rownames
+#'
+#' @param data
+#' @param col
+#' @param sep
+#'
+#' @return
+#' @export
+#'
+#' @examples
+col2rownames <- function(data, col = id, sep = "_"){
+
+  col <- rlang::enquo(col)
+
+  if (!rlang::as_name(col) %in% colnames(data)){
+    warning(paste0("Warning: Column ", rlang::as_name(col), " not found!"))
+    return(data)
+  }
+
+  names <- dplyr::select(data, !!col)
+  names <- apply(names, 1, paste0, collapse = sep)
+  rownames(data) <- names
+  data <- dplyr::select(data, -!!col)
+  data
+}
+
+
+
+
+#' Rownames to column
+#'
+#' @param data
+#' @param col
+#' @param keep
+#'
+#' @return
+#' @export
+#'
+#' @examples
+rownames2col <- function(data, col = id, keep = FALSE){
+
+  col <- rlang::enquo(col)
+
+  names <- rownames(data)
+  if (is.null(names)){
+    warning("Warning: No rownames found.")
+    return(data)
+  }
+  if (keep == FALSE) rownames(data) <- NULL
+
+  i <- rlang::as_name(col)
+  if (i %in% colnames(data)){
+    data[,i] <- names
+  } else {
+    if (class(names) %in% unique(sapply(data, class))){
+      data <- cbind(names, data)
+    } else {
+      data <- data.frame(names, data)
+    }
+
+    colnames(data)[1] <- i
+  }
+
+  data
+}
 
 
 
@@ -892,42 +960,110 @@ wtf <- function(x){
 
 
 
-#
-# newfun <- function(x, fun, ...){ fun(...); x }
-# m <- matrix(1:9, nrow = 3)
-# m[,last()] # not works in brackets
-# newfun(1, last) # works within function
-# (1:last())
-#
-# last <- function(test = rlang::trace_back(), where = topenv(parent.frame())){
-#   sys.function() %>% print()
-#   print(test)
-#   res <- list()
-#   res$par <- parent.frame()
-#   res$cur <- rlang::current_frame()
-#   res$stack <- sys.call()
-#   res$nframe <- sys.nframe()
-#   res$trace <- rlang::trace_back()
-#   res <<- res
-#
-#   # # fro, trace()
-#   call <- sys.call()
-#   call[[1L]] <- quote(methods::.TraceWithMethods)
-#   call$where <- where
-#   eval.parent(call) %>% print()
-#
-#   return(3)
-#
-# }
 
 
-
-usedir <- function(path){
+#' Make directory
+#'
+#' Recursively make a new directory (if not existing)
+#'
+#' @param path
+#'
+#' @return
+#' @export
+#'
+#' @examples
+mkdir <- function(path){
   stopifnot(class(path) == "character")
   if (!dir.exists(path)){
     dir.create(path = path, recursive = TRUE)
   }
 }
+
+
+
+
+
+
+
+
+
+
+#' Scale data within range
+#'
+#' @param data Matrix or vector
+#' @param from minimum
+#' @param to maximum
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' rangescale(1:5)
+rangescale <- function(data, from = 0, to = 1){
+
+  data_min <- min(data, na.rm = TRUE)
+  data_max <- max(data, na.rm = TRUE)
+
+  (data - data_min)/(data_max - data_min) * (to - from) + from
+
+}
+
+
+
+
+
+
+#' Summarise multiple columns by grouping
+#'
+#' @param data
+#' @param coldata
+#' @param by
+#' @param FUN
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+summarise_cols <- function(data, coldata = NULL, by = NULL, FUN = NULL, ...){
+
+  if (!is.null(coldata)){
+    by <- rlang::enquo(by)
+    coldata <- coldata[colnames(data),, drop = FALSE]
+    grouping <- dplyr::pull(coldata, !!by)
+  } else {
+    grouping <- by
+  }
+
+  stopifnot(length(grouping) == ncol(data))
+
+  groups <- unique(grouping)
+
+  res <- as.data.frame(lapply(groups, function(g){
+    FUN(data[, naf(grouping == g), drop = FALSE], ...)
+  }))
+  colnames(res) <- groups
+
+  res
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

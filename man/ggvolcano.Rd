@@ -24,6 +24,8 @@ ggvolcano(
   expand = c(0, 0),
   nbreaks_x = 7,
   nbreaks_y = 7,
+  xlim = NULL,
+  ylim = NULL,
   color_up = "#eb9d0e",
   color_down = "#146bc7",
   color_nonsig = "#4d4d4d",

@@ -201,6 +201,12 @@ theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_
 
 
 
+theme_dev <- function(theme_orig){
+  theme_orig %+replace%
+    theme(panel.background = element_rect(fill = rgb(0.5, 0.5, 0.5)),
+          plot.background = element_rect(fill = "darkblue"))
+}
+
 
 
 

@@ -260,6 +260,69 @@ ggpng <- function(gg, file, width = 3000, height = 2500, dpi = 300, units = "px"
 
 
 
+
+saveplot <- function(p, file = NULL, dev = "png", width = 3000, height = 2500, dpi = 300, units = "px", bg = NULL, gg = TRUE, PRINTFUN = print, ...){
+
+
+  stopifnot(dev %in% c("png", "pdf", "tiff", "svg", "jpg"))
+
+  # filename
+  if (is.null(file)) file <- rlang::as_name(rlang::enquo(p))
+  if (length(file) > 1){ file <- do.call(file.path, as.list(file)) }
+  if (nat(baseext(file) != dev)) file <- paste0(file, ".", dev)
+
+  if ("gg" %in% class(p)){ # only for single ggplots
+
+    ggplot2::ggsave(filename = file,
+                    plot = p,
+                    device = dev,
+                    width = width,
+                    height = height,
+                    units = units,
+                    dpi = dpi,
+                    bg = bg,
+                    ...)
+
+  } else {
+
+    if (dev == "png"){
+      if (is.null(bg)) bg <- "white"
+        grDevices::png(filename = file, width = width, height = height, units = units, bg = bg, res = dpi, type = "cairo", ...)
+          PRINTFUN(p)
+        dev.off()
+    }
+
+
+    if (dev == "pdf"){
+      if (class(p) == "list") p <- list(p)
+      grDevices::pdf(file = file, width = width, height = height, onefile = TRUE, ...)
+        tmp <- lapply(p, PRINTFUN)
+      dev.off()
+    }
+
+
+
+
+
+  }
+
+
+  invisible(p)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 gg_getLimits <- function(gg){
   gb <- ggplot2::ggplot_build(gg)
   x <- gb$layout$panel_params[[1]]$x.range
@@ -369,7 +432,7 @@ ggstat <- function(data, mapping, type = sd, barwidth = 0.1, ...){
 #'
 cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_rows = NULL, cluster_cols = NULL,
                       rowdf_side = "left", coldf_side = "top", rowdf_legend = TRUE, coldf_legend = TRUE,
-                      legend_border = "black",
+                      legend_border = "black", anno_border = "black",
                       fontsize = 12, rowcex = NULL, colcex = 1,
                       heatpal = NULL, border = NULL, title = NULL, colors = NULL,
                       inf = F, na = 0, mat = NULL, markoob = FALSE, markshape = 4, marksize = NULL, na_col = "grey", maxchar = 35, ...){
@@ -451,6 +514,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   rowAnn <- NULL
   if (!is.null(rowdf)) rowAnn <- getCXanno(df = rowdf[rownames(heatdata),, drop = FALSE],
                                            colors = colors,
+                                           anno_border = anno_border,
                                            side = rowdf_side,
                                            legend = rowdf_legend,
                                            legend_params = legend_params)
@@ -459,6 +523,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   colAnn <- NULL
   if (!is.null(coldf)) colAnn <- getCXanno(coldf[colnames(heatdata),, drop = FALSE],
                                            colors = colors,
+                                           anno_border = anno_border,
                                            side = coldf_side,
                                            legend = coldf_legend,
                                            legend_params = legend_params)
@@ -516,9 +581,15 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
 
 
 
-getCXanno <- function(df = NULL, side = "top", colors = NULL, fontsize = 12, gap = 0, legend = FALSE, legend_params = NULL, ...){
+getCXanno <- function(df = NULL, side = "top", colors = NULL, fontsize = 12, gap = 0, legend = FALSE, anno_border = NULL, legend_params = NULL, ...){
 
   if (is.null(df)) return(list())
+
+  if (is.null(anno_border)){
+    gp <- grid::gpar()
+  } else {
+    gp <- grid::gpar(col = anno_border)
+  }
 
   args <- list(df = df,
                name = side,
@@ -528,7 +599,7 @@ getCXanno <- function(df = NULL, side = "top", colors = NULL, fontsize = 12, gap
                show_annotation_name = TRUE,
                gap = grid::unit(gap, "cm"),
                border = FALSE,
-               gp = grid::gpar(col = rgb(0,0,0)),
+               gp = gp,
                annotation_name_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
                simple_anno_size_adjust = TRUE,
                annotation_name_side = ifelse(side %in% c("top", "bottom"), "right", "top"),
@@ -561,6 +632,157 @@ getColorScale <- function(data, ...){
 
   col
 }
+
+
+
+
+#
+#
+# clusterProfiler::gseaplot()
+# enrichplot::gseaplot2()
+#
+#
+# plotGSEA <- function(gsearesults, filename, title, n = 3){
+#   # c(rgb(0.8,0,0), rgb(0.15,0,0.7), rgb(0.90,0.91,0))
+#
+#   gg <- gseaplot2(gsearesults, geneSetID = 1:n, base_size = 16, subplots = 1:2, rel_heights = c(1, 0.15),
+#                   color =  c("#9e0000", "#350085", "#08a848", "#ffc400", "#006ec2", "#ad4291", "#e36a14", topo.colors(10))[1:n])
+#   gg <- gg +
+#     theme_bw() +
+#     theme(plot.title = element_text(size = 18, hjust=0.5),
+#           plot.margin = unit(c(1,2.5,1,2),"cm"),
+#           panel.grid = element_blank(),
+#           panel.grid.major = element_blank(),
+#           panel.grid.minor = element_blank(),
+#           panel.border = element_blank())
+#   gg <- gg + ggtitle(title)
+#   ggsave(plot = gg, filename = filename, device = "png", width = 12, height = 10)
+#
+# }
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# gsea_plot_modified <- function (x, geneSetID, title = "", color = "green", base_size = 20,
+#                                 rel_heights = c(1.5, 0.5, 1), subplots = 1:3, pvalue_table = FALSE,
+#                                 ES_geom = "line")
+# {
+#   attach(loadNamespace("enrichplot"), name = "enrichplot")
+#
+#   ES_geom <- match.arg(ES_geom, c("line", "dot"))
+#   geneList <- position <- NULL
+#   if (length(geneSetID) == 1) {
+#     gsdata <- gsInfo(x, geneSetID)
+#   }
+#   else {
+#     gsdata <- do.call(rbind, lapply(geneSetID, gsInfo, object = x))
+#   }
+#   p <- ggplot(gsdata, aes_(x = ~x)) + xlab(NULL) + theme_classic(base_size) +
+#     theme(panel.grid.major = element_blank(),
+#           axis.text = element_text(colour = "black"),
+#           panel.grid.minor = element_blank(),
+#           panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank()) +
+#     scale_x_continuous(expand = c(0, 0))
+#   if (ES_geom == "line") {
+#     es_layer <- geom_line(aes_(y = ~runningScore, color = ~Description),
+#                           size = 1)
+#   }
+#   else {
+#     es_layer <- geom_point(aes_(y = ~runningScore, color = ~Description),
+#                            size = 1, data = subset(gsdata, position == 1))
+#   }
+#   p.res <- p + es_layer + theme(legend.position = c(0.8, 0.8),
+#                                 text = element_text(size = 0.7 * base_size),
+#                                 legend.title = element_blank(), legend.background = element_rect(fill = "transparent"))
+#   p.res <- p.res + ylab("Enrichment Score") + theme(axis.text.x = element_blank(),
+#                                                     axis.ticks.x = element_blank(), axis.line.x = element_blank(),
+#                                                     plot.margin = margin(t = 0.2, r = 0.2, b = 0, l = 0.2,
+#                                                                          unit = "cm"))
+#   i <- 0
+#   for (term in unique(gsdata$Description)) {
+#     idx <- which(gsdata$ymin != 0 & gsdata$Description ==
+#                    term)
+#     gsdata[idx, "ymin"] <- i
+#     gsdata[idx, "ymax"] <- i + 1
+#     i <- i + 1
+#   }
+#   p2 <- ggplot(gsdata, aes_(x = ~x)) + geom_linerange(aes_(ymin = ~ymin,
+#                                                            ymax = ~ymax, color = ~Description)) + xlab(NULL) +
+#     ylab(NULL) + theme_classic(base_size) + theme(legend.position = "none",
+#                                                   plot.margin = margin(t = -0.1, b = 0, unit = "cm"),
+#                                                   axis.ticks = element_blank(), axis.text = element_blank(),
+#                                                   axis.line.x = element_blank()) + scale_x_continuous(expand = c(0,
+#                                                                                                                  0)) + scale_y_continuous(expand = c(0, 0))
+#   if (length(geneSetID) == 1) {
+#     v <- seq(1, sum(gsdata$position), length.out = 9)
+#     inv <- findInterval(rev(cumsum(gsdata$position)), v)
+#     if (min(inv) == 0)
+#       inv <- inv + 1
+#     col = c(rev(brewer.pal(5, "Blues")), brewer.pal(5, "Reds"))
+#     ymin <- min(p2$data$ymin)
+#     yy <- max(p2$data$ymax - p2$data$ymin) * 0.3
+#     xmin <- which(!duplicated(inv))
+#     xmax <- xmin + as.numeric(table(inv)[as.character(unique(inv))])
+#     d <- data.frame(ymin = ymin, ymax = yy, xmin = xmin,
+#                     xmax = xmax, col = col[unique(inv)])
+#     p2 <- p2 + geom_rect(aes_(xmin = ~xmin, xmax = ~xmax,
+#                               ymin = ~ymin, ymax = ~ymax, fill = ~I(col)), data = d,
+#                          alpha = 0.9, inherit.aes = FALSE)
+#   }
+#   df2 <- p$data
+#   df2$y <- p$data$geneList[df2$x]
+#   p.pos <- p + geom_segment(data = df2, aes_(x = ~x, xend = ~x,
+#                                              y = ~y, yend = 0), color = "grey")
+#   p.pos <- p.pos + ylab("Ranked list metric") + xlab("Rank in Ordered Dataset") +
+#     theme(plot.margin = margin(t = -0.1, r = 0.2, b = 0.2,
+#                                l = 0.2, unit = "cm"))
+#   if (!is.null(title) && !is.na(title) && title != "")
+#     p.res <- p.res + ggtitle(title)
+#   if (length(color) == length(geneSetID)) {
+#     p.res <- p.res + scale_color_manual(values = color)
+#     if (length(color) == 1) {
+#       p.res <- p.res# + theme(legend.position = "none")
+#       p2 <- p2 + scale_color_manual(values = "black")
+#     }
+#     else {
+#       p2 <- p2 + scale_color_manual(values = color)
+#     }
+#   }
+#   if (pvalue_table) {
+#     pd <- x[geneSetID, c("Description", "pvalue", "p.adjust")]
+#     pd <- pd[order(pd[, 1], decreasing = FALSE), ]
+#     rownames(pd) <- pd$Description
+#     pd <- pd[, -1]
+#     pd <- round(pd, 4)
+#     tp <- tableGrob2(pd, p.res)
+#     p.res <- p.res + theme(legend.position = "none") + annotation_custom(tp,
+#                                                                          xmin = quantile(p.res$data$x, 0.5), xmax = quantile(p.res$data$x,
+#                                                                                                                              0.95), ymin = quantile(p.res$data$runningScore,
+#                                                                                                                                                     0.75), ymax = quantile(p.res$data$runningScore,
+#                                                                                                                                                                            0.9))
+#   }
+#
+#   p2 <- p2 + theme(text = element_text(size = base_size*0.7))
+#   plotlist <- list(p.res, p2, p.pos)[subplots]
+#   n <- length(plotlist)
+#   plotlist[[n]] <- plotlist[[n]] + theme(axis.line.x = element_line(),
+#                                          axis.ticks.x = element_line(), axis.text.x = element_text())
+#   if (length(subplots) == 1)
+#     return(plotlist[[1]] + theme(plot.margin = margin(t = 0.2,
+#                                                       r = 0.2, b = 0.2, l = 0.2, unit = "cm")))
+#   if (length(rel_heights) > length(subplots))
+#     rel_heights <- rel_heights[subplots]
+#   plot_grid(plotlist = plotlist, ncol = 1, align = "v", rel_heights = rel_heights)
+# }
+#
+
+
 
 
 

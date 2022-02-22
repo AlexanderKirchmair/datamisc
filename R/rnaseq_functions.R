@@ -1,6 +1,12 @@
 
 
 
+
+
+
+
+
+
 #' Import counts from nf-core/rnaseq pipeline
 #'
 #' @param nfdir Results directory
@@ -146,6 +152,36 @@ nf_preprocessing <- function(multiqc_dir, design = NULL, ignore = FALSE){
 
 
 
+#' Gene ID conversion
+#'
+#' @param ids
+#' @param from
+#' @param to
+#' @param annotation
+#' @param multiVals first, collapse
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+convertGeneIDs <- function(ids, from = "ENTREZID", to = "SYMBOL", annotation = org.Hs.eg.db::org.Hs.eg.db, multiVals = "collapse", ...){
+
+  stopifnot(requireNamespace("AnnotationDbi"))
+
+  ktys <- AnnotationDbi::keytypes(annotation)
+  if (!from %in% ktys | !to %in% ktys){
+    print(paste0("Available ID types are: ", paste(ktys, collapse = ", ")))
+    stop("Error: Keytype not found!")
+  }
+
+  if (multiVals == "collapse"){ multiVals <- function(x){paste0(x, collapse = "|")}}
+
+  res <- AnnotationDbi::mapIds(x = annotation, keys = ids, column = to, keytype = from, multiVals = multiVals, ...)
+  res[res == "NA"] <- NA
+  res
+}
+
 
 
 
@@ -188,6 +224,100 @@ readGTF <- function(file, columns = NULL, ...){
 
 
 
+
+getBiotypes <- function(genes, idtype = "hgnc_symbol", biotype = "protein_coding"){
+
+  stopifnot(requireNamespace("biomaRt", quietly = TRUE))
+
+  ensembl <- biomaRt::useMart(biomart = "ensembl", "hsapiens_gene_ensembl")
+  biotypes <- biomaRt::getBM(attributes = c(idtype,"transcript_biotype"), filters = idtype, values = genes, ensembl)
+
+  biotypes
+}
+
+
+
+
+
+
+
+#' Collapse duplicate ids
+#'
+#' @param data matrix/data.frame
+#' @param ids vector of row identifiers
+#' @param select_by FUN for calculating stat by which duplicates are selected (applied to each row)
+#' @param average_by FUN for calculating averages of duplicate rows
+#' @param decreasing sort selecting stat increasingly/decreasingly (default = TRUE)
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+collapse <- function(data, ids, select_by = NULL, average_by = NULL, decreasing = TRUE, ...){
+
+  rownames(data) <- NULL
+
+  stopifnot(nrow(data) == length(ids))
+  if (any(is.na(ids))){
+    message("Warning: 'NA' ids are removed from results.")
+  }
+
+  if (sum(nat(duplicated(ids))) == 0){
+    message("No ids are duplicated.")
+    return(data)
+  }
+
+  if (is.null(select_by) & is.null(average_by)){
+    message("No method provided. Returning original data.")
+    return(data)
+  }
+
+  if (!is.null(select_by) & !is.null(average_by)){
+    stop("Error: Use only one of 'select_by', 'average_by'!")
+  }
+
+  ix <- 1:nrow(data)
+
+
+
+  # select_by ------------------------------------
+
+  # Select duplicate with highest (lowest) stat as returned by FUN
+
+  if (!is.null(select_by)){
+
+    stat <- apply(data, 1, FUN = select_by, ...)
+    ix_ordered <- order(stat, decreasing = decreasing)
+    ix_keep <- sort(ix[ix_ordered][!duplicated(ids[ix_ordered])])
+
+    data <- data[ix_keep,, drop = FALSE]
+    rownames(data) <- ids[ix_keep]
+    data <- data[!is.na(ids[ix_keep]),, drop = FALSE]
+  }
+
+
+
+  # average_by ------------------------------------
+
+  # Average duplicates based on FUN
+
+  if (!is.null(average_by)){
+    data <- data.frame(data, ids = ids)
+    data <- data %>% dplyr::group_by(ids) %>%
+      dplyr::summarise(dplyr::across(.fns = average_by, ...))
+    data <- as.data.frame(data)
+    data <- data[!is.na(data$ids),, drop = FALSE]
+    rownames(data) <- data$ids
+
+    data$ids <- NULL
+  }
+
+
+  data[na.omit(match(ids, rownames(data))),, drop = FALSE] # bring into original order
+
+
+}
 
 
 

@@ -16,6 +16,7 @@ cxheatmap(
   rowdf_legend = TRUE,
   coldf_legend = TRUE,
   legend_border = "black",
+  anno_border = "black",
   fontsize = 12,
   rowcex = NULL,
   colcex = 1,

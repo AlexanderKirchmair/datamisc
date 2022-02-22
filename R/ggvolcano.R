@@ -43,6 +43,7 @@
 ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shape = NULL,
                       nlabels = NULL, lab_size = 12, repel = 1.5, attract = NULL, box.padding = 0.5, max_overlaps = Inf, seed = 123,
                       ptres = 0.05, clip = FALSE, symlim = TRUE, expand = c(0,0), nbreaks_x = 7, nbreaks_y = 7,
+                      xlim = NULL, ylim = NULL,
                       color_up = "#eb9d0e", color_down = "#146bc7", color_nonsig = "#4d4d4d",
                       title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL,
                       lwd = 0.8, at_zero = FALSE, ...){
@@ -110,9 +111,12 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$do_label[data$x > 0][1:nlabels_right] <- TRUE
   data$do_label[is.na(data$do_label)] <- FALSE
 
+
   if (sum(data$do_label) < nlabels){ data$do_label[!data$do_label][1:(nlabels-sum(data$do_label))] <- TRUE }
   data$label[!data$do_label] <- ""
   data$do_label[data$label == ""] <- FALSE
+
+  data$do_label[data$class == "not signif."] <- FALSE
 
   # COLORS
 
@@ -129,11 +133,14 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
   # LIMITS
 
-  xylimits <- list(xlim = getLimits(data$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(data$ytmp, clip = clip, expand = expand[2], negative = FALSE))
+  sigdata <- subset(data, class != "not signif.")
+  xylimits <- list(xlim = getLimits(sigdata$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(sigdata$ytmp, clip = clip, expand = expand[2], negative = FALSE))
   if (symlim == TRUE){ xylimits$xlim <- c("min" = -max(abs(xylimits$xlim)), "max" = max(abs(xylimits$xlim))) }
   data$xorg <- data$x
   data$yorg <- data$y
 
+  if (!is.null(xlim)) xylimits$xlim <- setNames(xlim, c("min", "max"))
+  if (!is.null(ylim)) xylimits$ylim <- setNames(ylim, c("min", "max"))
 
   # set limits and axis tick labels
   # if clip==TRUE and any points are cut off, and recalculate limits based on breaks
@@ -190,7 +197,6 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   names(ybreaks) <- as.character(ybreaks)
   if (yclip_min){ names(ybreaks)[1] <- paste0("<", ybreaks[1]) }
   if (yclip_max){ names(ybreaks)[length(ybreaks)] <- paste0(">", ybreaks[length(ybreaks)]) }
-
 
 
   data$x[ data$x < xylimits$xlim["min"] ] <- xylimits$xlim["min"]
