@@ -9,9 +9,6 @@ colorcat(str = "text", col = rgb(1, 1, 1), add = "\\n")
 \arguments{
 \item{add}{}
 }
-\value{
-
-}
 \description{
 Print in color
 }

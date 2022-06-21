@@ -25,9 +25,6 @@ genPalettes(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Generate distinct color palettes
 }

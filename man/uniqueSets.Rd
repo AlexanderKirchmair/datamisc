@@ -11,9 +11,6 @@ uniqueSets(sets, sep = "&")
 
 \item{sep}{collapse set names}
 }
-\value{
-
-}
 \description{
 Get unique sets (irrespective of item order)
 }

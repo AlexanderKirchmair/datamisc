@@ -208,6 +208,14 @@ results.survfit <- function(x, ...){
 
 
 
+#' Kaplan-Meier Survival Analysis
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 KM <- function(...){
 
   args <- list(...)
@@ -259,7 +267,7 @@ ggplotSurv <- function(fit, data = NULL, xlabel = "time", ylabel = "survival", t
 
   # Function to plot survival curves
 
-  if (!is.null(data)) fit$data <- recodeCoxdata(data)
+  if (!is.null(data)) fit$data <- .recodeCoxdata(data)
   stopifnot(!is.null(fit$data))
 
   if ("coxph" %in% class(fit)){
@@ -374,16 +382,20 @@ ggplotSurv <- function(fit, data = NULL, xlabel = "time", ylabel = "survival", t
 
 
 
-
-quo_class <- function(x){
-  x_class <- NA
-  try({x_class <- class(rlang::eval_tidy(x))}, silent = TRUE)
-  x_class
-}
-
-
-
-
+#' Cox Proportional Hazards Analysis
+#'
+#' @param formula
+#' @param data
+#' @param update
+#' @param surv
+#' @param robust
+#' @param response
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 COX <- function(formula, data = NULL, update = NULL, surv = NULL, robust = FALSE, response = "surv", ...){
 
   if ("character" %in% class(formula)){
@@ -409,7 +421,7 @@ COX <- function(formula, data = NULL, update = NULL, surv = NULL, robust = FALSE
     formula <- update.formula(formula, formula2)
   }
 
-  data <- recodeCoxdata(data)
+  data <- .recodeCoxdata(data)
 
   if (!robust) cox.call <- str2lang(paste0("survival::coxph(", deparse1(formula), ", data = data, ...)"))
   if ( robust) cox.call <- str2lang(paste0("coxrobust::coxr(", deparse1(formula), ", data = data, ...)"))
@@ -687,7 +699,7 @@ coxselectFUN <- function(cox, vars, FUN, rm = FALSE){
 
 
 
-recodeCoxdata <- function(data, pattern = "__"){
+.recodeCoxdata <- function(data, pattern = "__"){
 
   rows <- rownames(data)
   data <- as.data.frame(data)

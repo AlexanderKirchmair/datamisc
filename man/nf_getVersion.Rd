@@ -9,9 +9,6 @@ nf_getVersion(ymlfile)
 \arguments{
 \item{ymlfile}{}
 }
-\value{
-
-}
 \description{
 Get version of the used nf-core/rnaseq pipeline
 }

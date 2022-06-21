@@ -49,9 +49,6 @@ ggvolcano(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Volcano plots using ggplot2
 }

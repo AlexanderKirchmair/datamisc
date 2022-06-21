@@ -90,9 +90,6 @@ cxheatmap(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Heatmap plotting with ComplexHeatmap
 }

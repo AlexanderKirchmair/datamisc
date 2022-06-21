@@ -6,9 +6,6 @@
 \usage{
 nat(data, ...)
 }
-\value{
-
-}
 \description{
 Set NA values to TRUE
 }

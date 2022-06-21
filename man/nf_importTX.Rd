@@ -11,9 +11,6 @@ nf_importTX(nfdir, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Import counts from nf-core/rnaseq pipeline
 }

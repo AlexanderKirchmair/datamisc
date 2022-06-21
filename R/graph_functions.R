@@ -88,15 +88,6 @@ nodeData <- function(graph, ...){
 }
 
 
-leafs <- function(graph, sources = TRUE, sinks = TRUE){
-
-
-
-
-
-
-
-}
 
 lcc <- function(graph){
 
@@ -147,7 +138,11 @@ rgraph <- function(n = 20){
 
 
 
-diffuse <- function(graph, nstat, estat, na = 0, maxiter = 1000, tresh = 0.001, decay = 1, fixed = TRUE, FUN = NULL, ...){
+
+
+
+
+diffuse <- function(graph, nstat, estat, na = 0, maxiter = 1000, tresh = 10^-6, decay = 1, fixed = TRUE, FUN = NULL, ...){
 
   ndf <- nodeData(graph)
   edf <- edgeData(graph)
@@ -167,7 +162,7 @@ diffuse <- function(graph, nstat, estat, na = 0, maxiter = 1000, tresh = 0.001, 
   v[is.na(v)] <- na
 
   A <- igraph::as_adjacency_matrix(graph, sparse = TRUE) * decay
-  n <- rowSums(A != 0, na.rm = TRUE)
+  n <- sparseMatrixStats::rowSums2(A != 0, na.rm = TRUE)
 
   if (is.null(FUN)){
     cat(crayon::blue("Network diffusion by matrix multiplication...\n"))
@@ -210,6 +205,27 @@ diffuse <- function(graph, nstat, estat, na = 0, maxiter = 1000, tresh = 0.001, 
 
 
 
+
+
+
+
+reverse_directions <- function(graph){
+
+  from <- edgeData(graph)$from
+  to <- edgeData(graph)$to
+
+  edgeData(graph)$from <- to
+  edgeData(graph)$to <- from
+
+  graph
+}
+
+
+
+
+
+
+
 subset.igraph <- function(graph, type, ...){
 
   ndf <- nodeData(graph)
@@ -231,7 +247,7 @@ subset.igraph <- function(graph, type, ...){
 
 
 
-layout_with_ggrepel <- function(graph, labels = NULL, init = NULL, scale = TRUE, point_size = 0.01, point_padding_x = 0.01, point_padding_y = 0.01, ...){
+layout_with_ggrepel <- function(graph, labels = NULL, init = NULL, scale = TRUE, point_size = 0, point_padding_x = 0.02, point_padding_y = 0.01, max_iter = 10^5, max_time = 30, ...){
 
   stopifnot(requireNamespace("ggrepel"))
 
@@ -258,8 +274,8 @@ layout_with_ggrepel <- function(graph, labels = NULL, init = NULL, scale = TRUE,
                                   force_pull = 1.1*10^-6,
                                   vjust = rep(0.5, nrow(xy)),
                                   max_overlaps = Inf,
-                                  max_time = 60,
-                                  max_iter = 10^6, ...)
+                                  max_time = max_time,
+                                  max_iter = max_iter, ...)
 
 
   res <- xyrep[,c("x", "y")]
@@ -275,7 +291,21 @@ layout_with_ggrepel <- function(graph, labels = NULL, init = NULL, scale = TRUE,
 
 
 
+leafs <- function(graph, mode = "all", multiple = FALSE, loops = FALSE, mindegree = 1, names = FALSE, logical = FALSE, ...){
 
+  if (!multiple) graph <- igraph::simplify(graph, remove.multiple = !multiple, remove.loops = !loops, edge.attr.comb = "ignore")
+  is_leaf <- igraph::degree(graph, mode = mode, loops = loops, ...) == mindegree
+
+  if (names == TRUE){
+    val <- V(graph)[ix]$name
+  } else if (logical == TRUE){
+    val <- is_leaf
+  } else {
+    val <- which(is_leaf)
+  }
+
+  unname(val)
+}
 
 
 

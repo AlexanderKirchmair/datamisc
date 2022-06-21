@@ -9,9 +9,6 @@ fp(...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 File path
 }

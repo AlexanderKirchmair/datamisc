@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting_functions.R
 \name{ggdesign}
 \alias{ggdesign}
-\title{Plot experimental design matrix}
+\title{Plot colData/experimental design matrix}
 \usage{
 ggdesign(
   design,
@@ -18,9 +18,6 @@ ggdesign(
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
-Plot experimental design matrix
+Plot colData/experimental design matrix
 }

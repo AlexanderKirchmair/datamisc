@@ -9,9 +9,6 @@ size(x, units = NULL)
 \arguments{
 \item{units}{}
 }
-\value{
-
-}
 \description{
 Memory size of workspace objects
 }

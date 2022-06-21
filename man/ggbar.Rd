@@ -9,9 +9,6 @@ ggbar(data, aes = NULL, colors = NULL, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Barplots with ggplot2
 }

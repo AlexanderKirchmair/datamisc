@@ -9,9 +9,6 @@ summarise_cols(data, coldata = NULL, by = NULL, FUN = NULL, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Summarise multiple columns by grouping
 }

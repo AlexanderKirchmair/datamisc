@@ -12,24 +12,33 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.0
 Suggests:
+    biomaRt,
+    clusterProfiler,
     colorDF,
     colourpicker,
     cowplot,
     crayon,
     dendsort,
+    graphlayouts,
+    GSEABase,
+    IHW,
     knitr,
     missMDA,
+    org.Hs.eg.db,
     plyr,
     prismatic,
     qualpalr,
     rmarkdown,
     rms,
+    rtracklayer,
+    sparseMatrixStats,
     survival,
     survminer,
     testthat (>= 3.0.0),
     tibble,
+    tidygraph,
     tidyr,
     yaml
 Config/testthat/edition: 3
@@ -53,5 +62,8 @@ Imports:
     fgsea,
     tximport,
     magrittr,
-    dplyr
+    dplyr,
+    AnnotationDbi,
+    igraph,
+    msigdbr
 VignetteBuilder: knitr

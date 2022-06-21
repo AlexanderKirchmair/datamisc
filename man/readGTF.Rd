@@ -9,9 +9,6 @@ readGTF(file, columns = NULL, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Read gtf files
 }

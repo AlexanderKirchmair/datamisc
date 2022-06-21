@@ -9,9 +9,6 @@ nf_getSamplesheet(file, exclude = c("fastq_1", "fastq_2", "strandedness"), ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Import samplesheet from nf-core/rnaseq pipeline
 }

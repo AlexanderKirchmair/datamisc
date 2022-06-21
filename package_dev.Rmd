@@ -59,7 +59,21 @@ use_package("DESeq2")
 use_package("GSVA")
 use_package("fgsea")
 use_package("tximport")
+use_package("AnnotationDbi")
+use_package("igraph")
+use_package("msigdbr")
 
+use_package("rtracklayer", type = "Suggests")
+use_package("sparseMatrixStats", type = "Suggests")
+use_package("tidygraph", type = "Suggests")
+use_package("graphlayouts", type = "Suggests")
+
+use_package("GSEABase", type = "Suggests")
+use_package("IHW", type = "Suggests")
+use_package("biomaRt", type = "Suggests")
+use_package("clusterProfiler", type = "Suggests")
+
+use_package("org.Hs.eg.db", type = "Suggests")
 use_package("colorDF", type = "Suggests")
 use_package("colourpicker", type = "Suggests")
 use_package("prismatic", type = "Suggests")
@@ -80,6 +94,7 @@ use_package("yaml", type = "Suggests")
 
 ```
 
+    
 Add R scripts
 ```{r}
 

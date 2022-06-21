@@ -9,9 +9,6 @@ rownames2col(data, col = id, keep = FALSE)
 \arguments{
 \item{keep}{}
 }
-\value{
-
-}
 \description{
 Rownames to column
 }

@@ -18,9 +18,9 @@ convertGeneIDs(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Gene ID conversion
+}
+\examples{
+convertGeneIDs(c("3098", "3099"))
 }

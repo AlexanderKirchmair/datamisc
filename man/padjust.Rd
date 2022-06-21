@@ -4,15 +4,12 @@
 \alias{padjust}
 \title{Adjust P-values for Multiple Comparisons}
 \usage{
-padjust(p, method = p.adjust.methods, ...)
+padjust(p, method = "fdr", ...)
 }
 \arguments{
 \item{p}{vector or matrix of p-values}
 
 \item{...}{}
-}
-\value{
-
 }
 \description{
 Adjust a vector or matrix of p-values derived from the same data for multiple testing.

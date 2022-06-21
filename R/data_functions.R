@@ -33,6 +33,7 @@ head2 <- function(data, nrows = 15, ncols = 10, ...){
 #' @export
 #'
 #' @examples
+#' body(mtcars)
 body <- function(data, nrows = 15, ncols = 10, ...){
 
   nr <- nrow(data)
@@ -66,7 +67,7 @@ cutstr <- function(x, maxchar = 25, add = "...", add_incl = TRUE){
   ix <- nchar(x) > maxchar
   x[ix] <- substr(x[ix], 1, ifelse(add_incl, maxchar - nchar(add), maxchar))
   x[ix] <- paste0(x[ix], add)
-  return(x)
+  x
 }
 
 
@@ -82,7 +83,7 @@ cutstr <- function(x, maxchar = 25, add = "...", add_incl = TRUE){
 baseext <- function(path, ...){
   path <- basename(path)
   ext <- gsub(x = path, pattern = ".*\\.", replacement = "")
-  ext[!grepl(pattern = ".", x = path, fixed = TRUE)] <- NA
+  ext[!grepl(pattern = ".", x = path, fixed = TRUE)] <- ""
   ext
 }
 
@@ -147,6 +148,23 @@ quo_class <- function(x, ...){
 }
 
 
+#' Divide vector into n groups
+#'
+#' @param x
+#' @param n
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' partition(LETTERS[1:10], 3)
+partition <- function(x, n = 3){
+  stopifnot(length(x) >= n)
+  if (n == 1) return(rep(1, length(x)))
+  y1 <- rep(1:(n-1), each = floor(length(x)/n))
+  y2 <- rep(n, length(x) - length(y1))
+  c(y1, y2)
+}
 
 
 #' Pattern Matching and Replacement
@@ -334,7 +352,7 @@ nar <- function (data, replace = 0, ...){
 #'
 #' @return
 #' @export
-naSkip <- function(data, skip = "rows"){
+na_skip <- function(data, skip = "rows"){
   if (tolower(skip) %in% c("row", "rows")) i <- 1
   else if (tolower(skip) %in% c("col", "cols", "columns")) i <- 2
   else stop("Error: skip must be 'rows' or 'columns'.")
@@ -397,6 +415,16 @@ rlist <- function(length = 5, items = 1:3, space = LETTERS){
 
 
 
+#' Generate a random data.frame
+#'
+#' @param nrow
+#' @param ncol
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' rdataframe()
 rdataframe <- function(nrow = 5, ncol = 5){
 
   df <- as.data.frame(lapply(1:ncol, function(i){
@@ -609,7 +637,7 @@ rounddown <- function(x, digits = 0, ...){
 #' @return
 #' @export
 #'
-padjust <- function(p, method = p.adjust.methods, ...){
+padjust <- function(p, method = "fdr", ...){
   porig <- p
   is.mat <- !is.null(dim(porig))
   if (is.mat) p <- as.vector(data.matrix(p))
@@ -691,6 +719,18 @@ rjoin <- function(...){
   rownames(res) <- rows
   res
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #' Write dataframes to .xlsx file
@@ -799,7 +839,7 @@ napply <- function(X, FUN, n, ...){
 
 
 
-#' Drop-in replacement for lapply to quickly identify failing items
+#' Drop-in replacement for lapply to quickly identify all failing items
 #'
 #' @param X
 #' @param FUN
@@ -920,48 +960,6 @@ clusterData <- function(data, method = "hclust", rows = NULL, cols = NULL, inf =
 
 
 
-
-
-
-#' What's this for?
-#'
-#' @param x
-#'
-#' @return
-#' @export
-#'
-#' @examples
-wtf <- function(x){
-
-  cat("Class:", class(x), "\n")
-
-  if (is.null(dim(x))){
-    cat("Length:", length(x), "\n")
-  } else {
-    cat("Dim:", dim(x), "\n")
-    cat("Rows:", rownames(x)[1:3], "\n")
-    cat("Cols:", colnames(x)[1:3], "\n")
-
-    message("Head:")
-    print(head(x))
-  }
-
-  if (length(x) > 3){
-    message("Structure:")
-    print(utils::str(x[1:3]))
-
-    message("First entry:")
-    print(utils::head(x[[1]]))
-  }
-
-
-  invisible(x)
-}
-
-
-
-
-
 #' Make directory
 #'
 #' Recursively make a new directory (if not existing)
@@ -978,11 +976,6 @@ mkdir <- function(path){
     dir.create(path = path, recursive = TRUE)
   }
 }
-
-
-
-
-
 
 
 
@@ -1051,18 +1044,52 @@ summarise_cols <- function(data, coldata = NULL, by = NULL, FUN = NULL, ...){
 
 
 
+#' Set the Names in an Object
+#'
+#' @param object
+#' @param colnames
+#'
+#' @return
+#' @export
+#'
+#' @examples
+setColnames <- function(object, colnames = NULL){
+  colnames(object) <- colnames
+  object
+}
+
+
+#' Set the Names in an Object
+#'
+#' @param object
+#' @param rownames
+#'
+#' @return
+#' @export
+#'
+#' @examples
+setRownames <- function(object, rownames = NULL){
+  rownames(object) <- rownames
+  object
+}
 
 
 
 
 
-
-
-
-
-
-
-
+#' Source R code of an RMD file
+#'
+#' @param file
+#'
+#' @return
+#' @export
+#'
+#' @examples
+sourceRMD <- function(file){
+  tmp <- tempfile()
+  on.exit(unlink(tmp))
+  invisible(knitr::knit(input = file, quiet = TRUE, output = tmp))
+}
 
 
 

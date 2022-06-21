@@ -9,9 +9,6 @@ col2rownames(data, col = id, sep = "_")
 \arguments{
 \item{sep}{}
 }
-\value{
-
-}
 \description{
 Column to rownames
 }

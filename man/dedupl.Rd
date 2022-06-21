@@ -15,9 +15,6 @@ dedupl(x, sep = ".", index = NULL, ...)
 
 \item{...}{arguments passed to 'duplicated'}
 }
-\value{
-
-}
 \description{
 Rename duplicated strings
 }

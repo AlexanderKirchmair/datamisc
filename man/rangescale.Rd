@@ -13,9 +13,6 @@ rangescale(data, from = 0, to = 1)
 
 \item{to}{maximum}
 }
-\value{
-
-}
 \description{
 Scale data within range
 }

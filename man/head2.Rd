@@ -9,9 +9,6 @@ head2(data, nrows = 15, ncols = 10, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Return the first n rows and columns of an object
 }

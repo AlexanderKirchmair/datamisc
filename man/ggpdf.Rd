@@ -9,9 +9,6 @@ ggpdf(gg, file, width = 3000, height = 2500, dpi = 300, units = "px", ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Save ggplot as pdf
 }

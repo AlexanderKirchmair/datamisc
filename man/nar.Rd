@@ -6,9 +6,6 @@
 \usage{
 nar(data, replace = 0, ...)
 }
-\value{
-
-}
 \description{
 Set NA values to any other value
 }

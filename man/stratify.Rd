@@ -13,9 +13,6 @@ stratify(x, n = 2, ties = "lower", optimal = FALSE, surv = NULL, ...)
 
 \item{ties}{Assign quantile ties to higher or lower group}
 }
-\value{
-
-}
 \description{
 Stratify variables based on quantiles
 }

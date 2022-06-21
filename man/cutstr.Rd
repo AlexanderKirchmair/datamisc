@@ -15,9 +15,6 @@ cutstr(x, maxchar = 25, add = "...", add_incl = TRUE)
 
 \item{add_incl}{include added string in maxchar}
 }
-\value{
-
-}
 \description{
 Limit number of characters in a string
 }

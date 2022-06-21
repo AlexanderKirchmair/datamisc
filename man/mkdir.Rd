@@ -9,9 +9,6 @@ mkdir(path)
 \arguments{
 \item{path}{}
 }
-\value{
-
-}
 \description{
 Recursively make a new directory (if not existing)
 }

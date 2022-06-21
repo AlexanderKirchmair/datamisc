@@ -17,9 +17,6 @@ matScale(data, rows = FALSE, cols = FALSE, FUN = scale, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Apply FUN ('scale' by default) to the rows or columns of a numeric matrix.
 }

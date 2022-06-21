@@ -1,5 +1,12 @@
 
 
+test_that("head2", {
+  m <- rmat(100, 100)
+  expect_equal( head2(m, nrows = 3, ncols = 5), m[1:3,1:5] )
+})
+
+
+
 
 test_that("NA handling", {
 
@@ -21,6 +28,14 @@ test_that("NA handling", {
 test_that("rmat", {
   expect_equal( dim(rmat(2,2)), c(2,2) )
   expect_true( all(rmat(FUN = rbinom, size = 1, prob = 1) == 1))
+})
+
+
+test_that("untidy rownames", {
+  m0 <- rmat()
+  m1 <- rownames2col(m0)
+  m2 <- col2rownames(m1)
+  expect_equal(as.matrix(m0), as.matrix(m2))
 })
 
 
@@ -65,6 +80,16 @@ test_that("dedupl", {
   expect_equal(sum(duplicated(dedupl(x))), 0)
   expect_equal(sum(grepl("__", dedupl(x, sep = "__", index = LETTERS))), sum(duplicated(x)))
 })
+
+
+test_that("padjust", {
+  pvec <- log10(runif(100, 1, 10))
+  pvec[sample(seq(pvec), size = 10)] <- 0.00001
+  expect_equal(padjust(pvec, method = "holm"), p.adjust(pvec, method = "holm"))
+  expect_equal(padjust(pvec, method = "fdr"), p.adjust(pvec, method = "fdr"))
+  expect_equal(as.vector(padjust(matrix(pvec, nrow = 10), method = "fdr")), p.adjust(pvec, method = "fdr"))
+})
+
 
 
 test_that("Write and read tables", {

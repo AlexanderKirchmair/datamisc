@@ -17,9 +17,6 @@ compareDF(
 \arguments{
 \item{color}{}
 }
-\value{
-
-}
 \description{
 Colored printing to compare two dataframes
 }

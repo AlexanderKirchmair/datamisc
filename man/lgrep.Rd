@@ -11,9 +11,6 @@ lgrep(pattern, x, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Pattern Matching and Replacement
 }

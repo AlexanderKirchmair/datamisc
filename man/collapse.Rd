@@ -26,9 +26,6 @@ collapse(
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Collapse duplicate ids
 }

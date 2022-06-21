@@ -9,9 +9,9 @@ body(data, nrows = 15, ncols = 10, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Return the middle n rows and columns of an object
+}
+\examples{
+body(mtcars)
 }

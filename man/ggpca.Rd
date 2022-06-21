@@ -23,9 +23,6 @@ ggpca(
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Quick plotting of PCA results.
 For advanced analysis, see e.g. browseVignettes("PCAtools").

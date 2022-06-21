@@ -4,13 +4,10 @@
 \alias{quo_class}
 \title{Get class of a quoted object}
 \usage{
-quo_class(x)
+quo_class(x, ...)
 }
 \arguments{
 \item{...}{}
-}
-\value{
-
 }
 \description{
 Get class of a quoted object

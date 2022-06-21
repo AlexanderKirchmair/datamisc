@@ -9,9 +9,6 @@ ggstat(data, mapping, type = sd, barwidth = 0.1, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Ggplot with errorbars
 }

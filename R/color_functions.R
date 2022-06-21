@@ -23,7 +23,12 @@ pickColors <- function(...){
 #' @examples
 showColors <- function(colors){
   if (missing(colors)) colors <- c("red", "green", "blue", sample(grDevices::colors(), 6))
-  prismatic::color(colors)
+
+  if (class(colors) == "list"){
+    lapply(colors, prismatic::color)
+  } else {
+    prismatic::color(colors)
+  }
 }
 
 
@@ -148,6 +153,69 @@ genPalettes <- function(n = 1, length_each = 3, dist = 0.75, saturation = c(0.5,
 
 
 
+#' Select colors using the 'paletteer' package
+#'
+#' @param length Integer/vector of desired length(s)
+#' @param continuous TRUE
+#' @param discrete TRUE
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' getPaletteer(length = 2)$colors %>% showColors()
+getPaletteer <- function(length = NULL, continuous = TRUE, discrete = TRUE){
+
+  stopifnot(requireNamespace("paletteer"))
+
+  cont <- paletteer::palettes_c_names
+  disc <- paletteer::palettes_d_names
+
+  cont$class <- "continuous"
+  cont$length <- NA
+  disc$class <- "discrete"
+  disc$novelty <- NULL
+  df <- rbind(disc, cont[,colnames(disc)])
+
+  if (!is.null(length)){
+    df <- df[df$length %in% length,, drop = FALSE]
+  }
+
+  if (continuous == FALSE){
+    df <- df[df$class != "continuous",, drop = FALSE]
+  }
+
+  if (discrete == FALSE){
+    df <- df[df$class != "discrete",, drop = FALSE]
+  }
+
+  colors <- unique(df$package) %L>% function(pkg){
+    tmp <- df[df$package == pkg,]
+    tmp$palette %L>% function(pal){
+      paletteer::palettes_d[[pkg]][[pal]]
+    }
+  }
+  df$colors <- unlist(colors, recursive = FALSE)
+
+  colorcat("Use 'showColors(df$colors)' to display colors.", col = rgb(0.3,0.3,1))
+  df
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -201,13 +269,19 @@ theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_
 
 
 
+#' Ggplot2 theme for checking plot layout and margins
+#'
+#' @param theme_orig
+#'
+#' @return
+#' @export
+#'
+#' @examples
 theme_dev <- function(theme_orig){
   theme_orig %+replace%
     theme(panel.background = element_rect(fill = rgb(0.5, 0.5, 0.5)),
           plot.background = element_rect(fill = "darkblue"))
 }
-
-
 
 
 

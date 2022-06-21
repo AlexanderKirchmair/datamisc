@@ -15,9 +15,6 @@ napply(X, FUN, n, ...)
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Nested apply
 }

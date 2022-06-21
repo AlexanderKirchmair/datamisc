@@ -6,9 +6,6 @@
 \usage{
 naf(data, ...)
 }
-\value{
-
-}
 \description{
 Set NA values to FALSE
 }

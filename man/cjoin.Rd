@@ -9,9 +9,6 @@ cjoin(...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Cbind multiple matrices by shared rownames
 }

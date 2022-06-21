@@ -2,16 +2,13 @@
 % Please edit documentation in R/data_functions.R
 \name{dbugapply}
 \alias{dbugapply}
-\title{Drop-in replacement for lapply to quickly identify failing items}
+\title{Drop-in replacement for lapply to quickly identify all failing items}
 \usage{
 dbugapply(X, FUN, ...)
 }
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
-Drop-in replacement for lapply to quickly identify failing items
+Drop-in replacement for lapply to quickly identify all failing items
 }

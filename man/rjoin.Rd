@@ -9,9 +9,6 @@ rjoin(...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Rbind multiple matrices by shared colnames
 }

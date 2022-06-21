@@ -54,7 +54,7 @@ ggbar <- function(data, aes = NULL, colors = NULL, ...){
 
 
 
-#' Plot experimental design matrix
+#' Plot colData/experimental design matrix
 #'
 #' @param design
 #' @param columns
@@ -261,18 +261,51 @@ ggpng <- function(gg, file, width = 3000, height = 2500, dpi = 300, units = "px"
 
 
 
-saveplot <- function(p, file = NULL, dev = "png", width = 3000, height = 2500, dpi = 300, units = "px", bg = NULL, gg = TRUE, PRINTFUN = print, ...){
+#' Save plot to file
+#'
+#' @param p plot
+#' @param file filename
+#' @param dev device
+#' @param width
+#' @param height
+#' @param dpi
+#' @param units
+#' @param bg
+#' @param gg
+#' @param PRINTFUN
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+saveplot <- function(p, file = NULL, dev = "png", width = 3000, height = 2500, dpi = 300, units = "px", bg = "white", ggsave = TRUE, PRINTFUN = print, ...){
 
 
-  stopifnot(dev %in% c("png", "pdf", "tiff", "svg", "jpg"))
+  stopifnot(dev %in% c("png", "pdf", "tiff", "svg", "jpeg", "jpg", "cairo_ps", "ps"))
 
   # filename
   if (is.null(file)) file <- rlang::as_name(rlang::enquo(p))
   if (length(file) > 1){ file <- do.call(file.path, as.list(file)) }
   if (nat(baseext(file) != dev)) file <- paste0(file, ".", dev)
 
-  if ("gg" %in% class(p)){ # only for single ggplots
 
+
+  get_inches <- function(x, dpi, units){
+    if (units == "px"){
+      x <- x/dpi
+    }
+    if (units == "cm"){
+      x <- x/dpi / 2.54
+    }
+    x
+  }
+
+
+
+  # GGSAVE WRAPPER
+  # only for single ggplots
+  if ("gg" %in% class(p) & ggsave == TRUE & !(dev %in% c("pdf", "ps", "cairo_ps")) ){
     ggplot2::ggsave(filename = file,
                     plot = p,
                     device = dev,
@@ -285,24 +318,87 @@ saveplot <- function(p, file = NULL, dev = "png", width = 3000, height = 2500, d
 
   } else {
 
+    # PNG
     if (dev == "png"){
       if (is.null(bg)) bg <- "white"
-        grDevices::png(filename = file, width = width, height = height, units = units, bg = bg, res = dpi, type = "cairo", ...)
+        grDevices::png(filename = file,
+                       width = width,
+                       height = height,
+                       units = units,
+                       bg = bg,
+                       res = dpi,
+                       type = "cairo",
+                       ...)
           PRINTFUN(p)
         dev.off()
     }
 
 
+    # PDF
     if (dev == "pdf"){
-      if (class(p) == "list") p <- list(p)
-      grDevices::pdf(file = file, width = width, height = height, onefile = TRUE, ...)
+      # multi-page pdf if list of plots (with lenght > 1)
+      if (!"list" %in% class(p)) p <- list(p)
+      grDevices::pdf(file = file,
+                     width = get_inches(width, dpi = dpi, units = units),
+                     height = get_inches(height, dpi = dpi, units = units),
+                     bg = bg,
+                     onefile = TRUE,
+                     ...)
         tmp <- lapply(p, PRINTFUN)
       dev.off()
     }
 
 
+    # SVG
+    if (dev == "svg"){
+      grDevices::svg(filename = file,
+                     width = get_inches(width, dpi = dpi, units = units),
+                     height = get_inches(height, dpi = dpi, units = units),
+                     onefile = TRUE,
+                     ...)
+        PRINTFUN(p)
+      dev.off()
+    }
 
+    # TIFF
+    if (dev == "tiff"){
+      grDevices::tiff(filename = file,
+                      width = width,
+                      height = height,
+                      res = dpi,
+                      bg = bg,
+                      type = "cairo",
+                      units = units,
+                      ...)
+        PRINTFUN(p)
+      dev.off()
+    }
 
+    # JPG
+    if (dev %in% c("jpeg", "jpg")){
+      grDevices::jpeg(filename = file,
+                      width = width,
+                      height = height,
+                      res = dpi,
+                      bg = bg,
+                      type = "cairo",
+                      units = units,
+                      ...)
+        PRINTFUN(p)
+      dev.off()
+    }
+
+    # POSTSCRIPT
+    if (dev %in% c("ps", "cairo_ps")){
+      grDevices::cairo_ps(filename = file,
+                          width = get_inches(width, dpi = dpi, units = units),
+                          height = get_inches(height, dpi = dpi, units = units),
+                          fallback_resolution = dpi,
+                          bg = bg,
+                          ...)
+        PRINTFUN(p)
+      dev.off()
+    }
 
   }
 
@@ -636,157 +732,146 @@ getColorScale <- function(data, ...){
 
 
 
-#
-#
-# clusterProfiler::gseaplot()
-# enrichplot::gseaplot2()
-#
-#
-# plotGSEA <- function(gsearesults, filename, title, n = 3){
-#   # c(rgb(0.8,0,0), rgb(0.15,0,0.7), rgb(0.90,0.91,0))
-#
-#   gg <- gseaplot2(gsearesults, geneSetID = 1:n, base_size = 16, subplots = 1:2, rel_heights = c(1, 0.15),
-#                   color =  c("#9e0000", "#350085", "#08a848", "#ffc400", "#006ec2", "#ad4291", "#e36a14", topo.colors(10))[1:n])
-#   gg <- gg +
-#     theme_bw() +
-#     theme(plot.title = element_text(size = 18, hjust=0.5),
-#           plot.margin = unit(c(1,2.5,1,2),"cm"),
-#           panel.grid = element_blank(),
-#           panel.grid.major = element_blank(),
-#           panel.grid.minor = element_blank(),
-#           panel.border = element_blank())
-#   gg <- gg + ggtitle(title)
-#   ggsave(plot = gg, filename = filename, device = "png", width = 12, height = 10)
-#
-# }
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# gsea_plot_modified <- function (x, geneSetID, title = "", color = "green", base_size = 20,
-#                                 rel_heights = c(1.5, 0.5, 1), subplots = 1:3, pvalue_table = FALSE,
-#                                 ES_geom = "line")
-# {
-#   attach(loadNamespace("enrichplot"), name = "enrichplot")
-#
-#   ES_geom <- match.arg(ES_geom, c("line", "dot"))
-#   geneList <- position <- NULL
-#   if (length(geneSetID) == 1) {
-#     gsdata <- gsInfo(x, geneSetID)
-#   }
-#   else {
-#     gsdata <- do.call(rbind, lapply(geneSetID, gsInfo, object = x))
-#   }
-#   p <- ggplot(gsdata, aes_(x = ~x)) + xlab(NULL) + theme_classic(base_size) +
-#     theme(panel.grid.major = element_blank(),
-#           axis.text = element_text(colour = "black"),
-#           panel.grid.minor = element_blank(),
-#           panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank()) +
-#     scale_x_continuous(expand = c(0, 0))
-#   if (ES_geom == "line") {
-#     es_layer <- geom_line(aes_(y = ~runningScore, color = ~Description),
-#                           size = 1)
-#   }
-#   else {
-#     es_layer <- geom_point(aes_(y = ~runningScore, color = ~Description),
-#                            size = 1, data = subset(gsdata, position == 1))
-#   }
-#   p.res <- p + es_layer + theme(legend.position = c(0.8, 0.8),
-#                                 text = element_text(size = 0.7 * base_size),
-#                                 legend.title = element_blank(), legend.background = element_rect(fill = "transparent"))
-#   p.res <- p.res + ylab("Enrichment Score") + theme(axis.text.x = element_blank(),
-#                                                     axis.ticks.x = element_blank(), axis.line.x = element_blank(),
-#                                                     plot.margin = margin(t = 0.2, r = 0.2, b = 0, l = 0.2,
-#                                                                          unit = "cm"))
-#   i <- 0
-#   for (term in unique(gsdata$Description)) {
-#     idx <- which(gsdata$ymin != 0 & gsdata$Description ==
-#                    term)
-#     gsdata[idx, "ymin"] <- i
-#     gsdata[idx, "ymax"] <- i + 1
-#     i <- i + 1
-#   }
-#   p2 <- ggplot(gsdata, aes_(x = ~x)) + geom_linerange(aes_(ymin = ~ymin,
-#                                                            ymax = ~ymax, color = ~Description)) + xlab(NULL) +
-#     ylab(NULL) + theme_classic(base_size) + theme(legend.position = "none",
-#                                                   plot.margin = margin(t = -0.1, b = 0, unit = "cm"),
-#                                                   axis.ticks = element_blank(), axis.text = element_blank(),
-#                                                   axis.line.x = element_blank()) + scale_x_continuous(expand = c(0,
-#                                                                                                                  0)) + scale_y_continuous(expand = c(0, 0))
-#   if (length(geneSetID) == 1) {
-#     v <- seq(1, sum(gsdata$position), length.out = 9)
-#     inv <- findInterval(rev(cumsum(gsdata$position)), v)
-#     if (min(inv) == 0)
-#       inv <- inv + 1
-#     col = c(rev(brewer.pal(5, "Blues")), brewer.pal(5, "Reds"))
-#     ymin <- min(p2$data$ymin)
-#     yy <- max(p2$data$ymax - p2$data$ymin) * 0.3
-#     xmin <- which(!duplicated(inv))
-#     xmax <- xmin + as.numeric(table(inv)[as.character(unique(inv))])
-#     d <- data.frame(ymin = ymin, ymax = yy, xmin = xmin,
-#                     xmax = xmax, col = col[unique(inv)])
-#     p2 <- p2 + geom_rect(aes_(xmin = ~xmin, xmax = ~xmax,
-#                               ymin = ~ymin, ymax = ~ymax, fill = ~I(col)), data = d,
-#                          alpha = 0.9, inherit.aes = FALSE)
-#   }
-#   df2 <- p$data
-#   df2$y <- p$data$geneList[df2$x]
-#   p.pos <- p + geom_segment(data = df2, aes_(x = ~x, xend = ~x,
-#                                              y = ~y, yend = 0), color = "grey")
-#   p.pos <- p.pos + ylab("Ranked list metric") + xlab("Rank in Ordered Dataset") +
-#     theme(plot.margin = margin(t = -0.1, r = 0.2, b = 0.2,
-#                                l = 0.2, unit = "cm"))
-#   if (!is.null(title) && !is.na(title) && title != "")
-#     p.res <- p.res + ggtitle(title)
-#   if (length(color) == length(geneSetID)) {
-#     p.res <- p.res + scale_color_manual(values = color)
-#     if (length(color) == 1) {
-#       p.res <- p.res# + theme(legend.position = "none")
-#       p2 <- p2 + scale_color_manual(values = "black")
-#     }
-#     else {
-#       p2 <- p2 + scale_color_manual(values = color)
-#     }
-#   }
-#   if (pvalue_table) {
-#     pd <- x[geneSetID, c("Description", "pvalue", "p.adjust")]
-#     pd <- pd[order(pd[, 1], decreasing = FALSE), ]
-#     rownames(pd) <- pd$Description
-#     pd <- pd[, -1]
-#     pd <- round(pd, 4)
-#     tp <- tableGrob2(pd, p.res)
-#     p.res <- p.res + theme(legend.position = "none") + annotation_custom(tp,
-#                                                                          xmin = quantile(p.res$data$x, 0.5), xmax = quantile(p.res$data$x,
-#                                                                                                                              0.95), ymin = quantile(p.res$data$runningScore,
-#                                                                                                                                                     0.75), ymax = quantile(p.res$data$runningScore,
-#                                                                                                                                                                            0.9))
-#   }
-#
-#   p2 <- p2 + theme(text = element_text(size = base_size*0.7))
-#   plotlist <- list(p.res, p2, p.pos)[subplots]
-#   n <- length(plotlist)
-#   plotlist[[n]] <- plotlist[[n]] + theme(axis.line.x = element_line(),
-#                                          axis.ticks.x = element_line(), axis.text.x = element_text())
-#   if (length(subplots) == 1)
-#     return(plotlist[[1]] + theme(plot.margin = margin(t = 0.2,
-#                                                       r = 0.2, b = 0.2, l = 0.2, unit = "cm")))
-#   if (length(rel_heights) > length(subplots))
-#     rel_heights <- rel_heights[subplots]
-#   plot_grid(plotlist = plotlist, ncol = 1, align = "v", rel_heights = rel_heights)
-# }
-#
 
 
 
+#' GSEA plot modified from 'enrichplot::gseaplot2'
+#'
+#' @param gsearesults
+#' @param n
+#'
+#' @return
+#' @export
+#'
+#' @examples
+gseaplot <- function(gsearesults, n = 3){
+
+  stopifnot(requireNamespace("enrichplot"))
+
+  gsea_plot_modified <- function (x, geneSetID, title = "", color = "green", base_size = 20,
+                                  rel_heights = c(1.5, 0.5, 1), subplots = 1:3, pvalue_table = FALSE,
+                                  ES_geom = "line"){
+
+    ES_geom <- match.arg(ES_geom, c("line", "dot"))
+    geneList <- position <- NULL
+    if (length(geneSetID) == 1) {
+      gsdata <- gsInfo(x, geneSetID)
+    }
+    else {
+      gsdata <- do.call(rbind, lapply(geneSetID, gsInfo, object = x))
+    }
+    p <- ggplot(gsdata, aes_(x = ~x)) + xlab(NULL) + theme_classic(base_size) +
+      theme(panel.grid.major = element_blank(),
+            axis.text = element_text(colour = "black"),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank()) +
+      scale_x_continuous(expand = c(0, 0))
+    if (ES_geom == "line") {
+      es_layer <- geom_line(aes_(y = ~runningScore, color = ~Description),
+                            size = 1)
+    }
+    else {
+      es_layer <- geom_point(aes_(y = ~runningScore, color = ~Description),
+                             size = 1, data = subset(gsdata, position == 1))
+    }
+    p.res <- p + es_layer + theme(legend.position = c(0.8, 0.8),
+                                  text = element_text(size = 0.7 * base_size),
+                                  legend.title = element_blank(), legend.background = element_rect(fill = "transparent"))
+    p.res <- p.res + ylab("Enrichment Score") + theme(axis.text.x = element_blank(),
+                                                      axis.ticks.x = element_blank(), axis.line.x = element_blank(),
+                                                      plot.margin = margin(t = 0.2, r = 0.2, b = 0, l = 0.2,
+                                                                           unit = "cm"))
+    i <- 0
+    for (term in unique(gsdata$Description)) {
+      idx <- which(gsdata$ymin != 0 & gsdata$Description ==
+                     term)
+      gsdata[idx, "ymin"] <- i
+      gsdata[idx, "ymax"] <- i + 1
+      i <- i + 1
+    }
+    p2 <- ggplot(gsdata, aes_(x = ~x)) + geom_linerange(aes_(ymin = ~ymin,
+                                                             ymax = ~ymax, color = ~Description)) + xlab(NULL) +
+      ylab(NULL) + theme_classic(base_size) + theme(legend.position = "none",
+                                                    plot.margin = margin(t = -0.1, b = 0, unit = "cm"),
+                                                    axis.ticks = element_blank(), axis.text = element_blank(),
+                                                    axis.line.x = element_blank()) + scale_x_continuous(expand = c(0,
+                                                                                                                   0)) + scale_y_continuous(expand = c(0, 0))
+    if (length(geneSetID) == 1) {
+      v <- seq(1, sum(gsdata$position), length.out = 9)
+      inv <- findInterval(rev(cumsum(gsdata$position)), v)
+      if (min(inv) == 0)
+        inv <- inv + 1
+      col = c(rev(brewer.pal(5, "Blues")), brewer.pal(5, "Reds"))
+      ymin <- min(p2$data$ymin)
+      yy <- max(p2$data$ymax - p2$data$ymin) * 0.3
+      xmin <- which(!duplicated(inv))
+      xmax <- xmin + as.numeric(table(inv)[as.character(unique(inv))])
+      d <- data.frame(ymin = ymin, ymax = yy, xmin = xmin,
+                      xmax = xmax, col = col[unique(inv)])
+      p2 <- p2 + geom_rect(aes_(xmin = ~xmin, xmax = ~xmax,
+                                ymin = ~ymin, ymax = ~ymax, fill = ~I(col)), data = d,
+                           alpha = 0.9, inherit.aes = FALSE)
+    }
+    df2 <- p$data
+    df2$y <- p$data$geneList[df2$x]
+    p.pos <- p + geom_segment(data = df2, aes_(x = ~x, xend = ~x,
+                                               y = ~y, yend = 0), color = "grey")
+    p.pos <- p.pos + ylab("Ranked list metric") + xlab("Rank in Ordered Dataset") +
+      theme(plot.margin = margin(t = -0.1, r = 0.2, b = 0.2,
+                                 l = 0.2, unit = "cm"))
+    if (!is.null(title) && !is.na(title) && title != "")
+      p.res <- p.res + ggtitle(title)
+    if (length(color) == length(geneSetID)) {
+      p.res <- p.res + scale_color_manual(values = color) + theme(legend.position = "left", legend.direction = "vertical")
+      if (length(color) == 1) {
+        p.res <- p.res + theme(legend.position = "left", legend.direction = "vertical")
+        p2 <- p2 + scale_color_manual(values = "black")
+      }
+      else {
+        p2 <- p2 + scale_color_manual(values = color)
+      }
+    }
+    if (pvalue_table) {
+      pd <- x[geneSetID, c("Description", "pvalue", "p.adjust")]
+      pd <- pd[order(pd[, 1], decreasing = FALSE), ]
+      rownames(pd) <- pd$Description
+      pd <- pd[, -1]
+      pd <- round(pd, 4)
+      tp <- tableGrob2(pd, p.res)
+      p.res <- p.res
+    }
+
+    p2 <- p2 + theme(text = element_text(size = base_size*0.7))
+
+    p3 <- cowplot::get_legend(p.res)
+    p.res <- p.res + theme(legend.position = "none")
+
+    plotlist <- list(p.res, p2, p.pos)[subplots]
+    n <- length(plotlist)
+    plotlist[[n]] <- plotlist[[n]] + theme(axis.line.x = element_line(),
+                                           axis.ticks.x = element_line(), axis.text.x = element_text())
+    if (length(subplots) == 1)
+      return(plotlist[[1]] + theme(plot.margin = margin(t = 0.2,
+                                                        r = 0.2, b = 0.2, l = 0.2, unit = "cm")))
+
+    p <- plot_grid(plotlist = plotlist, ncol = 1, align = "v", rel_heights = rel_heights)
+    plot_grid(p, p3, ncol = 1, rel_heights = c(1, 0.025 + 0.025*length(geneSetID)))
+  }
 
 
+  gg <- gsea_plot_modified(gsearesults, geneSetID = 1:n, base_size = 16, subplots = 1:2, rel_heights = c(1, 0.15),
+                           color =  c("#eb0000", "#4d58ff", "#fac000", "#12c939", "#36a5c9", topo.colors(10))[1:n])
+  gg <- gg +
+    theme_bw() +
+    theme(plot.title = element_text(size = 18, hjust=0.5),
+          plot.margin = unit(c(1,2.5,1,2),"cm"),
+          panel.grid = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank())
 
+  gg
+}
 
 
 

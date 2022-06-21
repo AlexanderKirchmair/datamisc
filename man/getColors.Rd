@@ -9,9 +9,6 @@ getColors(dataframe)
 \arguments{
 \item{dataframe}{}
 }
-\value{
-
-}
 \description{
 Generate color mappings for discrete data columns in a dataframe
 }

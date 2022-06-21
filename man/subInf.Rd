@@ -9,9 +9,6 @@ subInf(data, increase = 0.2, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Replace Inf values for plotting
 }
