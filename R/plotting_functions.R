@@ -530,6 +530,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
                       rowdf_side = "left", coldf_side = "top", rowdf_legend = TRUE, coldf_legend = TRUE,
                       legend_border = "black", anno_border = "black",
                       fontsize = 12, rowcex = NULL, colcex = 1,
+                      rownames_width = 0.3, colnames_width = 0.3,
                       heatpal = NULL, border = NULL, title = NULL, colors = NULL,
                       inf = F, na = 0, mat = NULL, markoob = FALSE, markshape = 4, marksize = NULL, na_col = "grey", maxchar = 35, ...){
 
@@ -655,8 +656,8 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
 
   hm <- ComplexHeatmap::Heatmap(name = title,
                                 matrix = heatdata,
-                                row_names_max_width = grid::unit(0.3, "npc"),
-                                column_names_max_height = grid::unit(0.3, "npc"),
+                                row_names_max_width = grid::unit(rownames_width, "npc"),
+                                column_names_max_height = grid::unit(colnames_width, "npc"),
                                 column_title_gp = grid::gpar(fontsize = fontsize, fontface = "bold"),
                                 rect_gp = border,
                                 na_col = na_col,
