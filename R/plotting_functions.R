@@ -196,7 +196,7 @@ ggpca <- function(data, design = NULL, mapping =  ggplot2::aes(), center = TRUE,
     ggplot2::scale_x_continuous(expand =  ggplot2::expansion(mult = c(0.2,0.2))) +
     ggplot2::scale_y_continuous(expand =  ggplot2::expansion(mult = c(0.2,0.2)))
 
-  if (label == TRUE) gg <- gg +  ggplot2::geom_text_repel(size = 5, show.legend = F, min.segment.length = 2)
+  if (label == TRUE) gg <- gg + ggrepel::geom_text_repel(size = 5, show.legend = F, min.segment.length = 2)
   if (!is.null(colors)) gg <- gg +  ggplot2::scale_color_manual(values = colors[[rlang::as_name(base_aes[["colour"]])]])
 
   gg
