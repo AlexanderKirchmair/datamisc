@@ -169,7 +169,7 @@ ggpca <- function(data, design = NULL, mapping =  ggplot2::aes(), center = TRUE,
 
   # top-variance features
   if (!is.null(n)){
-    data <- data[,order(apply(data, 2, var), decreasing = TRUE)[1:n]]
+    data <- data[order(apply(data, 2, var), decreasing = TRUE)[1:n],]
   }
 
   # run pca
