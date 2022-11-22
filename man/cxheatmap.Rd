@@ -20,6 +20,8 @@ cxheatmap(
   fontsize = 12,
   rowcex = NULL,
   colcex = 1,
+  rownames_width = 0.3,
+  colnames_width = 0.3,
   heatpal = NULL,
   border = NULL,
   title = NULL,

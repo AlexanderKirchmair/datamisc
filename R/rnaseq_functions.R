@@ -250,6 +250,7 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #'
 #' @examples
 runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filter = NULL,
+                      ctrlgenes = NULL, sizefactors = NULL,
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
                       shrink = TRUE, ihw = TRUE, vst = TRUE, rlog = FALSE, ...){
 
@@ -312,6 +313,14 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
 
 
   # Model fitting ----
+  if (!is.null(sizefactors)){
+    dds$sizeFactor <- sizefactors
+  } else if (!is.null(ctrlgenes)){
+    if (!all(ctrlgenes %in% rownames(dds))){
+      stop("Not all ctrlgenes present in data!")
+    }
+    dds <- DESeq2::estimateSizeFactors(dds, controlGenes = rownames(dds) %in% ctrlgenes)
+  }
   dds <- DESeq2::DESeq(dds, parallel = (ncores > 1), BPPARAM = bppar, ...)
 
 
@@ -425,225 +434,6 @@ runLIMMA <- function(data, design, formula = ~ 1, contrasts = NULL, trend = TRUE
 
 
 
-
-
-
-
-
-
-#' Gene ID conversion
-#'
-#' @param ids
-#' @param from
-#' @param to
-#' @param annotation
-#' @param multiVals first, collapse
-#' @param ...
-#'
-#' @return
-#' @export
-#'
-#' @examples
-#' convertGeneIDs(c("3098", "3099"))
-convertGeneIDs <- function(ids, from = "ENTREZID", to = "SYMBOL", annotation = org.Hs.eg.db::org.Hs.eg.db, multiVals = "collapse", ...){
-
-  stopifnot(requireNamespace("AnnotationDbi"))
-
-  ktys <- AnnotationDbi::keytypes(annotation)
-  if (!from %in% ktys | !to %in% ktys){
-    print(paste0("Available ID types are: ", paste(ktys, collapse = ", ")))
-    stop("Error: Keytype not found!")
-  }
-
-  if (multiVals == "collapse"){ multiVals <- function(x){paste0(x, collapse = "|")}}
-
-  res <- AnnotationDbi::mapIds(x = annotation, keys = ids, column = to, keytype = from, multiVals = multiVals, ...)
-  res[res == "NA"] <- NA
-  res
-}
-
-
-
-
-
-#' Get gene sets from msigdbr
-#'
-#' @param collections Collections (msigdbr::msigdbr_collections()) and subcollections
-#' @param species
-#' @param id_type
-#' @param format
-#'
-#' @return
-#' @export
-#'
-#' @examples getGeneSets(c("H", "C2|CP:KEGG|CP:REACTOME"))
-getGeneSets <- function(collections = c("H", "C2|CP:KEGG"), species = "human", id_type = "gene_symbol", format = c("list", "dataframe", "GeneSetCollection"), ...){
-
-  stopifnot(requireNamespace("msigdbr"))
-  # msigdbr::msigdbr_species()
-  # msigdbr::msigdbr_collections()
-
-  if (!is.null(collections)){
-
-    collections <- strsplit(collections, split = "|", fixed = TRUE)
-    categories <- sapply(collections, function(x) x[1] )
-    subcategories <- lapply(setNames(collections, categories), function(x) unique(x[-1]) )
-    subcategories[sapply(subcategories, length) == 0] <- NA
-    df <- stack(subcategories)[,c(2,1)]
-    colnames(df) <- c("category", "subcategory")
-
-
-    gslist <- lapply(1:nrow(df), function(i){
-      categ <- as.character(df[i,1])
-      subcateg <- df[i,2]
-      if (is.na(subcateg)) subcateg <- NULL
-      msigdbr::msigdbr(species = species, category = categ, subcategory = subcateg)
-    })
-
-    genesets <- Reduce(x = gslist, f = rbind)
-
-  } else {
-
-    genesets <- msigdbr::msigdbr(species = species)
-  }
-
-
-  df <- unique(data.frame(genesets[,c(id_type, "gs_name")]))
-  colnames(df) <- c("gene", "term")
-  GS <- convertGeneSets(df, from = "dataframe", to = format, ...)
-
-  GS
-}
-
-
-
-
-
-
-
-
-
-#' Convert gene sets between different formats
-#'
-#' @param genesets
-#' @param from
-#' @param to
-#' @param term
-#' @param gene
-#'
-#' @return
-#' @export
-#'
-#' @examples
-convertGeneSets <- function(genesets, from = NULL, to = "list", term = term, gene = gene){
-
-  stopifnot(requireNamespace("GSEABase"))
-
-  term <- rlang::enquo(term)
-  gene <- rlang::enquo(gene)
-
-  if (is.null(from)){
-    if ("data.frame" %in% class(genesets)) from <- "dataframe"
-    if ("list" %in% class(genesets)) from <- "list"
-    if ("GeneSetCollection" %in% class(genesets)) from <- "GeneSetCollection"
-  }
-
-  from <- trimws(tolower(from[1]))
-  to <- trimws(tolower(to[1]))
-
-  gsc <- FALSE
-  if (to %in% c("list", "l")) to <- "list"
-  if (to %in% c("dataframe", "df", "data.frame", "table")) to <- "dataframe"
-  if (to %in% "genesetcollection"){
-    to <- "list"
-    gsc <- TRUE
-  }
-
-  if (from == "GeneSetCollection" & to == "GeneSetCollection") return(genesets)
-
-
-  # from list to dataframe
-  if (from == "list" & to == "dataframe"){
-    genesets <- utils::stack(genesets)[,c(2,1)]
-    colnames(genesets) <- c(rlang::as_name(term), rlang::as_name(gene))
-  }
-
-  # from dataframe to list
-  if (from == "dataframe" & to == "list"){
-    genesets <- dplyr::select(genesets, !!gene, !!term)
-    genesets <- unstack(unique(genesets))
-  }
-
-  # from list to GeneSetCollection
-  if (gsc == TRUE){
-    genesets <- lapply(setNames(seq_along(genesets), names(genesets)), function(i){
-      GSEABase::GeneSet(genesets[[i]], setName = names(genesets[i]))
-    })
-    genesets <- GSEABase::GeneSetCollection(genesets)
-  }
-
-
-  genesets
-}
-
-
-
-#' Read gtf files
-#'
-#' @param file
-#' @param columns
-#' @param ...
-#'
-#' @return
-#' @export
-#'
-#' @examples
-readGTF <- function(file, columns = NULL, ...){
-
-  gtf <- rtracklayer::import(file)
-  gtf <- subset(gtf, ...)
-
-  if (is.null(columns)){
-    columns <- c("gene_name", "seqnames", "gene_type")
-    cat(paste0("Returning columns: ", paste(columns, collapse = ", ")))
-    cat(paste0("Available columns: ", paste(colnames(as.data.frame(head(gtf))), collapse = ", ")))
-  } else if ("all" %in% tolower(columns)){
-    columns <- colnames(as.data.frame(head(gtf)))
-  }
-
-  df <- as.data.frame(gtf)[,columns, drop = FALSE]
-  df <- dplyr::distinct(df)
-  df
-}
-
-
-
-
-
-
-
-
-#' Retrieve data from BiomaRt
-#'
-#' @param genes
-#' @param idtype
-#' @param attributes
-#' @param biotype
-#' @param ...
-#'
-#' @return
-#' @export
-#'
-#' @examples
-getBiomaRt <- function(genes, idtype = "hgnc_symbol", attributes = "transcript_biotype", biotype = "protein_coding", ...){
-
-  stopifnot(requireNamespace("biomaRt", quietly = TRUE))
-
-  mart <- biomaRt::useMart(biomart = "ensembl", "hsapiens_gene_ensembl")
-  results <- biomaRt::getBM(attributes = c(idtype, attributes), filters = idtype, values = genes, mart = mart, ...)
-
-  results
-}
 
 
 
@@ -917,6 +707,31 @@ runGSVA <- function(data, genesets = NULL, method = "gsva", kcdf = "Gaussian", n
 
   results <- data.frame(results)
   results
+}
+
+
+
+
+
+#' Gene set over-representation analysis
+#'
+#' @param genes vector of genes
+#' @param genesets gene set dataframe
+#' @param p_cutoff
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples getMSigDB("H")$HALLMARK_GLYCOLYSIS |> runORA()
+runORA <- function(genes, genesets = NULL, p_cutoff = 0.25, ...){
+
+  stopifnot(requireNamespace("clusterProfiler"))
+
+  if (is.null(genesets)) genesets <- getGOgenes(...)
+
+  results <- clusterProfiler::enricher(gene = genes, TERM2GENE = genesets, pAdjustMethod = "fdr", pvalueCutoff = 1, qvalueCutoff = 1)
+  subset(as.data.frame(results), p.adjust <= p_cutoff)
 }
 
 

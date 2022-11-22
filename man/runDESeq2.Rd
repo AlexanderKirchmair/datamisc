@@ -10,6 +10,8 @@ runDESeq2(
   formula = ~1,
   contrasts = NULL,
   filter = NULL,
+  ctrlgenes = NULL,
+  sizefactors = NULL,
   alpha = 0.05,
   ordered = TRUE,
   df = TRUE,

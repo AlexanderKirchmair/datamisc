@@ -162,15 +162,16 @@ ggpca <- function(data, design = NULL, mapping =  ggplot2::aes(), center = TRUE,
     }
   }
 
+  # select top-variance features
+  if (!is.null(n)){
+    if (n <= 1) n <- round(nrow(data) * n)
+    vars <- apply(data, 1, var)
+    data <- data[order(abs(vars), decreasing = TRUE)[1:n],]
+  }
 
   # zero-variance data
   vars <- apply(data, 1, var, na.rm = TRUE)
   data <- data[abs(vars) > .Machine$double.eps & !is.na(vars),]
-
-  # top-variance features
-  if (!is.null(n)){
-    data <- data[order(apply(data, 1, var), decreasing = TRUE)[1:n],]
-  }
 
   # run pca
   pcares <- stats::prcomp(t(data), center = center, scale. = scale, ...)
@@ -873,6 +874,128 @@ gseaplot <- function(gsearesults, n = 3){
 
   gg
 }
+
+
+
+
+
+
+
+
+
+
+
+
+#' GSEA bar plot
+#'
+#' @param results
+#' @param x
+#' @param y
+#' @param label
+#' @param sort_by
+#' @param sort_abs
+#' @param top_by
+#' @param top_n
+#' @param top_n_up
+#' @param top_n_down
+#' @param labsize
+#' @param reverse
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggseabar <- function(results, x = NULL, y = NULL, label = NULL, sort_by = NULL, sort_abs = FALSE, top_by = NULL, top_n = 20, top_n_up = NULL, top_n_down = NULL, labsize = 12, reverse = FALSE, ...){
+
+  # Input
+  results <- as.data.frame(results)
+
+  x <- rlang::enquo(x)
+  y <- rlang::enquo(y)
+  label <- rlang::enquo(label)
+  sort_by <- rlang::enquo(sort_by)
+  top_by <- rlang::enquo(top_by)
+
+  ordered_guess <- function(x, ref){
+    guess <- grep(paste0(x, collapse = "|"), ref, value = TRUE)
+    guess <- sort(factor(guess, ordered = TRUE, levels = x))
+    guess[1]
+  }
+
+  if (rlang::quo_is_null(x)){
+    x <- ordered_guess(c("padj","p.adjust","padjust","fdr", "FDR", "pvalue","pval"), colnames(results))
+    x <- rlang::sym(as.character(x))
+  }
+
+  if (rlang::quo_is_null(y)){
+    y <- ordered_guess( c("pathway", "Pathway", "description", "Description", "id", "ID", "geneset"), colnames(results))
+    y <- rlang::sym(as.character(y))
+  }
+
+  if (rlang::quo_is_null(label)) label <- y
+  if (rlang::quo_is_null(sort_by)) sort_by <- x
+  if (rlang::quo_is_null(top_by)) top_by <- sort_by
+
+  # Processing
+  if (is.null(top_n_up)){
+    results <- dplyr::arrange(results, dplyr::desc(abs(!!top_by)))
+    results <- results[1:top_n,, drop = FALSE]
+  } else {
+    results <- dplyr::arrange(results, dplyr::desc(!!top_by))
+    if (top_n_up > 0) ix.up <- 1:top_n_up else ix.up <- c()
+    if (top_n_down > 0) ix.down <- (nrow(results) - top_n_down + 1):nrow(results) else ix.down <- c()
+    ix <- unique(c(ix.up, ix.down))
+    results <- results[ix,, drop = FALSE]
+  }
+
+  if (sort_abs == TRUE){
+    results <- dplyr::arrange(results, dplyr::desc(abs(!!sort_by)))
+  } else {
+    results <- dplyr::arrange(results, dplyr::desc(!!sort_by))
+  }
+
+  if (reverse == TRUE){
+    results[[rlang::as_name(y)]] <- factor(results[[rlang::as_name(y)]], ordered = TRUE, levels = results[[rlang::as_name(y)]][!duplicated(results[[rlang::as_name(y)]])])
+  } else {
+    results[[rlang::as_name(y)]] <- factor(results[[rlang::as_name(y)]], ordered = TRUE, levels = rev(results[[rlang::as_name(y)]][!duplicated(results[[rlang::as_name(y)]])]))
+  }
+
+
+  gg <- ggplot2::ggplot(results, aes(x = !!x, y = !!y, label = !!label, ...)) + ggplot2::geom_bar(stat = "identity")
+  gg <- gg + ggplot2::geom_vline(xintercept = 0, color = "grey40")
+
+  res_left <- subset(results, results[[rlang::as_name(x)]] < 0)
+  if (nrow(res_left) > 0) gg <- gg + ggplot2::geom_text(size = labsize/ggplot2::.pt, data = res_left, nudge_x = 0.25, hjust = 0)
+  res_right <- subset(results, results[[rlang::as_name(x)]] > 0)
+  if (nrow(res_right) > 0) gg <- gg + ggplot2::geom_text(size = labsize/ggplot2::.pt, data = res_right, nudge_x = -0.25, hjust = 1)
+
+  lims <- ceiling(abs(range(results[[rlang::as_name(x)]])))
+  gg <- gg + ggplot2::ylab("")
+  gg <- gg + ggplot2::theme(axis.text.y = ggplot2::element_blank(),
+                            panel.border = ggplot2::element_blank(),
+                            plot.background = ggplot2::element_blank(),
+                            axis.ticks.y = ggplot2::element_blank(),
+                            plot.title = ggplot2::element_text(hjust = 0.5))
+
+
+  gg <- gg + ggplot2::xlim(c(-max(abs(lims)), max(abs(lims))))
+  gg <- gg + ggplot2::scale_fill_gradient2(low = "#0e7aed", mid = "white", high = "#db3b25", midpoint = 0, oob = scales::squish)
+
+  gg
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

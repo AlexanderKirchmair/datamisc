@@ -1098,4 +1098,50 @@ sourceRMD <- function(file){
 
 
 
+#' Format p-values for printing
+#'
+#' @param p
+#' @param min
+#' @param scientific
+#' @param add
+#' @param stars
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pval_format <- function(p, min = 0.001, scientific = NULL, add = "p ", stars = FALSE){
+
+  if (!is.null(min)){
+    digits <- nchar(sub("^-?\\d*\\.?","", min))
+    ptext <- round(p, digits = digits)
+    poob <- p < min
+    ptext[poob] <- min
+    ptext <- paste0(add, ifelse(poob, "<", "="), " ", ptext)
+
+    psc <- signif(p, digits) |> format(scientific=TRUE)
+    if (!is.null(scientific)) ptext[poob] <- psc[poob]
+
+  }
+
+  # format(p, scientific=TRUE)
+
+  ptext
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
