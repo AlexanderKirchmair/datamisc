@@ -142,13 +142,15 @@ getMetabolicAtlas <- function(type = "genes"){
 #' @export
 #'
 #' @examples
-getMitoCarta <- function(file = "Human.MitoCarta3.0.xls"){
+getMitoCarta <- function(file = "Human.MitoCarta3.0.xls", ...){
 
   db <- "ftp://ftp.broadinstitute.org/distribution/metabolic/papers/Pagliarini/MitoCarta3.0/Human.MitoCarta3.0.xls"
   download.file(db, destfile = file)
   mitocarta <- as.data.frame(readxl::read_xls(file, sheet = 2))
   gs <- mitocarta$MitoCarta3.0_MitoPathways %>% strsplit(split = ">|\\|") %>% sapply(trimws) %>% sapply(tolower)
-  gsnames <- gs %>% unlist() %>% unique()
+  gsnames <- gs %>% unlist() %>% as.character() %>% unique()
+  gsnames <- gsnames[!is.na(gsnames)]
+  gsnames <- gsnames[gsnames != "0"]
   mcgs <- lapply(gsnames,function(x) mitocarta$Symbol[ sapply(gs,function(y) x %in% y )] )
   mcgs <- mcgs[!is.na(gsnames)]
   names(mcgs) <- gsnames[!is.na(gsnames) & nchar(gsnames) > 1]
@@ -171,13 +173,12 @@ getMitoCarta <- function(file = "Human.MitoCarta3.0.xls"){
 #' @param keytype
 #' @param ontology
 #' @param minsize
-#' @param format
 #'
 #' @return
 #' @export
 #'
 #' @examples
-getGOgenes <- function(db = org.Hs.eg.db::org.Hs.eg.db, keytype = "SYMBOL", ontology = c("BP", "MF", "CC"), minsize = 3, format = "df"){
+getGOgenes <- function(db = org.Hs.eg.db::org.Hs.eg.db, keytype = "SYMBOL", ontology = c("BP", "MF", "CC"), minsize = 3){
 
   go2ont <- AnnotationDbi::Ontology(GO.db::GOTERM)
 

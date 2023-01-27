@@ -4,7 +4,7 @@
 \alias{getMitoCarta}
 \title{Get gene sets from MitoCarta3}
 \usage{
-getMitoCarta(file = "Human.MitoCarta3.0.xls")
+getMitoCarta(file = "Human.MitoCarta3.0.xls", ...)
 }
 \arguments{
 \item{file}{}

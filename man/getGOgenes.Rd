@@ -8,12 +8,11 @@ getGOgenes(
   db = org.Hs.eg.db::org.Hs.eg.db,
   keytype = "SYMBOL",
   ontology = c("BP", "MF", "CC"),
-  minsize = 3,
-  format = "df"
+  minsize = 3
 )
 }
 \arguments{
-\item{format}{}
+\item{minsize}{}
 }
 \description{
 Get GO gene sets
