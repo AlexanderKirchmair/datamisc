@@ -1135,7 +1135,19 @@ pval_format <- function(p, min = 0.001, scientific = NULL, add = "p ", stars = F
 
 
 
-
+#' Combine character values into a vector or list without quotes
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' ce(a,b,c)
+ce <- function(...){
+  args <- rlang::enquos(...)
+  sapply(args, rlang::as_name)
+}
 
 
 

@@ -355,7 +355,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
       mle <- as.data.frame(mle)
       mle <- dplyr::relocate(.data = mle, gene)
       mle <- dplyr::rename(.data = mle, log2FC = log2FoldChange, log2FCse = lfcSE)
-      if (ordered == TRUE) mle <- dplyr::arrange(mle, padj)
+      if (ordered == TRUE) mle <- dplyr::arrange(mle, pvalue)
       mle
     })
 

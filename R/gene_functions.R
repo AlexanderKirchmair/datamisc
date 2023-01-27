@@ -183,9 +183,11 @@ getGOgenes <- function(db = org.Hs.eg.db::org.Hs.eg.db, keytype = "SYMBOL", onto
 
   godf <- stack(AnnotationDbi::mapIds(db, keys = unique(names(go2ont)), column = keytype, keytype = "GOALL", multiVals = "list"))
   colnames(godf) <- c("gene", "id")
-  godf <- subset(godf, !is.na(gene))
+  godf$gene <- as.character(godf$gene)
+  godf$id <- as.character(godf$id)
+  godf <- subset(godf, !is.na(gene) & !is.na(id))
 
-  go2term <- AnnotationDbi::Term(GO.db::GOTERM[unique(as.character(godf$id))])
+  go2term <- AnnotationDbi::Term(GO.db::GOTERM[unique(godf$id)])
 
   godf$term <- go2term[godf$id]
   godf$ont <- go2ont[godf$id]
