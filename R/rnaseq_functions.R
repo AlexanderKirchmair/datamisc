@@ -514,8 +514,7 @@ collapse <- function(data, ids, select_by = NULL, average_by = NULL, decreasing 
   }
 
 
-  data[na.omit(match(ids, rownames(data))),, drop = FALSE] # bring into original order
-
+  data[unique(na.omit(match(ids, rownames(data)))),, drop = FALSE] # bring into original order
 
 }
 
