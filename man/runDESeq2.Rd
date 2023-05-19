@@ -24,7 +24,37 @@ runDESeq2(
 )
 }
 \arguments{
-\item{...}{}
+\item{data}{Counts matrix}
+
+\item{design}{Experimental design/colData}
+
+\item{formula}{Formula}
+
+\item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel)}
+
+\item{filter}{Vector for filtering (subsetting) data}
+
+\item{ctrlgenes}{Control genes for normalization (housekeeping genes)}
+
+\item{sizefactors}{Pre-calculated size factors}
+
+\item{alpha}{Significance level (default = 0.05)}
+
+\item{ordered}{Order results (default = TRUE)}
+
+\item{df}{Return results ass data.frame}
+
+\item{ncores}{Parallel processing}
+
+\item{shrink}{Use ashr for log2FC shrinkage}
+
+\item{ihw}{Use independent hypothesis weighting}
+
+\item{vst}{Add vst-transformed assay}
+
+\item{rlog}{Add rlog-transformed assay}
+
+\item{...}{Parameters passed to DESeq}
 }
 \description{
 Differential expression analysis with DESeq2

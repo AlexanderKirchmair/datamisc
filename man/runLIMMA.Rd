@@ -18,6 +18,24 @@ runLIMMA(
 )
 }
 \arguments{
+\item{data}{Data}
+
+\item{design}{Experimental design/colData}
+
+\item{formula}{Formula}
+
+\item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel)}
+
+\item{trend}{Trend}
+
+\item{robust}{Robust}
+
+\item{p.adj.method}{P.adj.method}
+
+\item{normalize}{Normalize}
+
+\item{norm.method}{Normalization method}
+
 \item{...}{}
 }
 \description{

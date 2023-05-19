@@ -10,17 +10,8 @@ library(testthat)
 ```
 
 
-
-https://r-pkgs.org/
-https://pkgdown.r-lib.org/index.html
-
-To do:
-* add easyverse
-
-
 ```{r initial setup}
 
-# create_package("newfolder") # File > New Project... > ...
 use_mit_license()
 use_readme_rmd()
 use_pipe()
@@ -115,18 +106,6 @@ document()
 # devtools::build_manual()
 # roxygen2::roxygenize()
 ```
-
-
-
-```{r}
-
-# usethis::use_vignette("survival")
-
-
-```
-
-
-
 
 
 

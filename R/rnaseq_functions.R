@@ -222,28 +222,24 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 
 
 
-
-
-
-
-
-
 #' Differential expression analysis with DESeq2
 #'
-#' @param data
-#' @param design
-#' @param formula
-#' @param contrasts
-#' @param filter
-#' @param alpha
-#' @param ordered
-#' @param df
-#' @param ncores
-#' @param shrink
-#' @param ihw
-#' @param vst
-#' @param rlog
-#' @param ...
+#' @param data Counts matrix
+#' @param design Experimental design/colData
+#' @param formula Formula
+#' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
+#' @param filter Vector for filtering (subsetting) data
+#' @param ctrlgenes Control genes for normalization (housekeeping genes)
+#' @param sizefactors Pre-calculated size factors
+#' @param alpha Significance level (default = 0.05)
+#' @param ordered Order results (default = TRUE)
+#' @param df Return results ass data.frame
+#' @param ncores Parallel processing
+#' @param shrink Use ashr for log2FC shrinkage
+#' @param ihw Use independent hypothesis weighting
+#' @param vst Add vst-transformed assay
+#' @param rlog Add rlog-transformed assay
+#' @param ... Parameters passed to DESeq
 #'
 #' @return
 #' @export
@@ -380,13 +376,15 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
 
 #' Differential expression analysis with LIMMA
 #'
-#' @param data
-#' @param design
-#' @param formula
-#' @param contrasts
-#' @param trend
-#' @param robust
-#' @param p.adj.method
+#' @param data Data
+#' @param design Experimental design/colData
+#' @param formula Formula
+#' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
+#' @param trend Trend
+#' @param robust Robust
+#' @param p.adj.method P.adj.method
+#' @param normalize Normalize
+#' @param norm.method Normalization method
 #' @param ...
 #'
 #' @return

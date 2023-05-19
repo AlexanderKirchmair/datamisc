@@ -113,20 +113,6 @@ stratify_var <- function(x, n = 2, ties = "lower", ...){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ggplotForest <- function(df, x = H, y = term, color = -log10(pval), ptres = 0.05, ...){
 
   # Input
