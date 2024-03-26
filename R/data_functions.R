@@ -778,6 +778,111 @@ writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
 }
 
 
+
+# writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE,
+#                         scale_column = NULL, scale_column2 = NULL, scale_colors = c("#ffca0a", "#ffffff", "#6200d0"), scale_rule = NULL, scale_rule2 = NULL, # limits = c(3,0,-3),
+#                         highlight_column = NULL, highlight_color = "#3be1ff", highlight_values = NULL,
+#                         condition_column, condition_rule = "<=0.05", condition_color = NULL, condition_fontcolor = "#ff2222",
+#                         check = FALSE, ...){
+#
+#   stopifnot(requireNamespace("openxlsx"))
+#
+#   if (!"list" %in% class(data)){
+#     data <- setNames(list(data), gsub("\\..*$", "", basename(file)))
+#   }
+#
+#   # names
+#   newnames <- cutstr(names(data), maxchar = 29)
+#   if (any(duplicated(newnames))){
+#     newnames <- cutstr(names(data), maxchar = 26)
+#     newnames <- dedupl(newnames)
+#   }
+#   names(data) <- newnames
+#
+#
+#   # styles
+#   highlight_style <- openxlsx::createStyle(fgFill = highlight_color)
+#   scale_style <- rev(scale_colors)
+#   condition_style <- createStyle(fontColour = condition_fontcolor, bgFill = condition_color)
+#   header_style <- openxlsx::createStyle(textDecoration = "bold")
+#
+#   wb <- openxlsx::createWorkbook()
+#
+#   res1 <- invisible(lapply(names(data), function(tmpname){
+#
+#     tmpdata <- as.data.frame(data[[tmpname]])
+#     openxlsx::addWorksheet(wb, tmpname)
+#
+#     openxlsx::writeData(wb, sheet = tmpname, x = tmpdata, rowNames = rowNames, headerStyle = header_style, ...)
+#     if (adjwidths == TRUE){
+#       openxlsx::setColWidths(wb, sheet = tmpname, cols = 1:(ncol(tmpdata) + as.numeric(rowNames)), widths = "auto")
+#     }
+#
+#     if (!is.null(highlight_column)){
+#       if (highlight_column %in% colnames(tmpdata)){
+#         openxlsx::addStyle(wb, sheet = tmpname, style = highlight_style,
+#                            rows = 1 + which(tmpdata[[highlight_column]] %in% highlight_values),
+#                            cols = which(colnames(tmpdata) == highlight_column) + as.numeric(rowNames))
+#       }
+#     }
+#
+#     if (!is.null(scale_column)){
+#       if (any(scale_column %in% colnames(tmpdata))){
+#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) %in% scale_column) + as.numeric(rowNames),
+#                                         rows = 1 + 1:nrow(tmpdata),
+#                                         rule = scale_rule,
+#                                         style = scale_style,
+#                                         type = "colourScale")
+#       }
+#     }
+#
+#     if (!is.null(scale_column2)){
+#       if (any(scale_column2 %in% colnames(tmpdata))){
+#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) %in% scale_column2) + as.numeric(rowNames),
+#                                         rows = 1 + 1:nrow(tmpdata),
+#                                         rule = scale_rule2,
+#                                         style = scale_style,
+#                                         type = "colourScale")
+#       }
+#     }
+#
+#     if (!is.null(condition_column)){
+#       if (any(condition_column %in% colnames(tmpdata))){
+#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) == condition_column) + as.numeric(rowNames),
+#                                         rows = 1 + 1:nrow(tmpdata),
+#                                         rule = condition_rule,
+#                                         style = condition_style)
+#       }
+#     }
+#
+#     tmpdata
+#   }))
+#
+#   if (baseext(file) != "xlsx") file <- paste0(file, ".xlsx")
+#   openxlsx::saveWorkbook(wb, file = file, overwrite = TRUE)
+#
+#
+#   if (check == TRUE){
+#     res2 <- readTables(file, rowNames = rowNames)
+#     if (is.data.frame(res2)) res2 <- list(res2)
+#     for (i in 1:length(res2)){
+#       stopifnot(all.equal(res1[[i]], res2[[i]]))
+#     }
+#   }
+# }
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' Read all sheets from .xlsx file
 #'
 #' @param file
@@ -1041,6 +1146,39 @@ summarise_cols <- function(data, coldata = NULL, by = NULL, FUN = NULL, ...){
 }
 
 
+#' Summarise multiple rows by grouping
+#'
+#' @param data
+#' @param rowdata
+#' @param by
+#' @param FUN
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+summarise_rows <- function(data, rowdata = NULL, by = NULL, FUN = NULL, ...){
+
+  if (!is.null(rowdata)){
+    by <- rlang::enquo(by)
+    rowdata <- rowdata[rownames(data),, drop = FALSE]
+    grouping <- dplyr::pull(rowdata, !!by)
+  } else {
+    grouping <- by
+  }
+
+  stopifnot(length(grouping) == nrow(data))
+
+  groups <- unique(grouping)
+
+  res <- as.data.frame(lapply(groups, function(g){
+    FUN(data[naf(grouping == g),, drop = FALSE], ...)
+  }))
+  rownames(res) <- groups
+
+  res
+}
 
 
 
@@ -1148,6 +1286,146 @@ ce <- function(...){
   args <- rlang::enquos(...)
   sapply(args, rlang::as_name)
 }
+
+
+
+#' Source R functions from dir into local env
+#'
+#' @param dir
+#' @param pattern
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' newenv <- sourcelib("lib")
+#' attach(newenv)
+sourcelib <- function(dir = "lib", pattern = "\\.r$|\\.R$"){
+  env <- new.env()
+  grep(pattern = ".r$", list.files(dir, full.names = TRUE), value = TRUE) |> sapply(source, local = env) |> invisible()
+  env
+}
+
+
+
+
+#' Get data from the GEO database
+#'
+#' @param ID
+#' @param geodir
+#' @param fetch_files
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' GSE234099 <- getGEOdata(ID = "GSE234099", fetch_files = FALSE)
+#' GSE222693 <- getGEOdata(ID = "GSE222693")
+getGEOdata <- function(ID = "GSE222693", geodir = "~/myScratch/GEO", fetch_files = TRUE, ...){
+
+  cat(crayon::blue("Use 'Biobase::pData($geo$series_matrix.txt.gz)' to get the samplesheet\n"))
+  cat(crayon::blue("Use 'Biobase::exprs($geo$series_matrix.txt.gz)' to get the expression data (if present)\n"))
+
+  stopifnot(requireNamespace("GEOquery"))
+
+  dir.create(geodir, showWarnings = FALSE)
+  subdir <- file.path(geodir, ID)
+  dir.create(subdir, showWarnings = FALSE)
+  if (length(list.files(subdir)) > 0){
+    warning("Warning: Directory not empty!")
+  }
+
+  geo <- GEOquery::getGEO(ID, destdir = subdir, ...)
+  supp <- GEOquery::getGEOSuppFiles(makeDirectory = FALSE, "GSE222693", baseDir = subdir, fetch_files = fetch_files)
+
+  if (fetch_files == FALSE){
+    suppfiles <- unname(supp["url"])
+  } else {
+    suppfiles <- rownames(supp)
+  }
+
+  list(geo = geo, suppfiles = suppfiles)
+}
+
+
+
+#' Safe filenames
+#'
+#' @param names
+#' @param replacement
+#' @param unique
+#' @param sep
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' make_filenames("file/na.me")
+make_filenames <- function(names, replacement = "_", unique = TRUE, sep = .Platform$file.sep, ...){
+  names <- sub(sep, "_", names, fixed = TRUE)
+  names <- make.names(names, unique = unique, ...)
+  names <- sub(".", replacement, names, fixed = TRUE)
+  names <- sub(".", replacement, names, fixed = TRUE)
+  names
+}
+
+
+
+
+#' Software version reporting
+#'
+#' @return
+#' @export
+#'
+#' @examples
+versionInfo <- function(){
+
+  env <- sessioninfo::platform_info()
+  df1 <- t(as.data.frame(env)[,c("version", "os")])
+  df1 <- cbind(c("R", "OS"), df1)
+  df1[1,2] <- gsub("R version ", "", df1[1,2])
+
+  pkgs <- sessioninfo::package_info(pkgs = .packages(), dependencies = FALSE)
+  df2 <- as.data.frame(pkgs)[,c("package", "loadedversion", "source")]
+  colnames(df2) <- c("package", "version", "source")
+
+  list(platform = df1, packages = df2)
+}
+
+
+
+
+#' Intersection of all elements
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' intersection(LETTERS[1:10], LETTERS[5:8], LETTERS[7:12])
+intersection <- function(...){
+
+  args <- list(...)
+  if (length(args) == 1 & is.list(args[[1]])){
+    args <- args[[1]]
+  }
+
+  Reduce(f = intersect, x = args)
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -11,8 +11,10 @@ ggvolcano(
   color = NULL,
   label = NULL,
   shape = NULL,
+  stroke = NA,
   nlabels = NULL,
   lab_size = 12,
+  labface = "plain",
   repel = 1.5,
   attract = NULL,
   box.padding = 0.5,
@@ -51,4 +53,7 @@ ggvolcano(
 }
 \description{
 Volcano plots using ggplot2
+}
+\examples{
+data.frame(row.names = LETTERS, lfc = runif(length(LETTERS), -3, 3), padj = runif(length(LETTERS))) |> ggvolcano()
 }

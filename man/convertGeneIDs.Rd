@@ -23,4 +23,6 @@ Gene ID conversion
 }
 \examples{
 convertGeneIDs(c("3098", "3099"))
+convertGeneIDs(c("3098", "3099"), to = "GENENAME")
+convertGeneIDs(c("3098", "3099"), to = "GENETYPE")
 }

@@ -2,60 +2,53 @@
 
 
 
-
-
-
-
-
-#' Import counts from nf-core/rnaseq pipeline
+#' Import counts from nf-core/rnaseq pipeline using tximport
 #'
-#' @param nfdir Results directory
+#' @param nfdir results directory
+#' @param samplesheet samplesheet data frame
+#' @param subdir star_salmon
+#' @param pattern quant.sf (salmon output)
+#' @param tx2gene tx2gene.tsv (salmon output)
+#' @param type
+#' @param gene
 #' @param ...
 #'
 #' @return
 #' @export
 #'
 #' @examples
-nf_importTX <- function(nfdir, ...){
+nf_tximport <- function(nfdir, samplesheet = NULL, subdir = "star_salmon", pattern = "quant.sf", tx2gene = "tx2gene.tsv", type = "salmon", gene = "SYMBOL", ...){
 
-  cat(crayon::red("Use '$counts' for 3'-tagged sequencing data\n"))
+  stopifnot(requireNamespace("tximport", quietly = TRUE))
 
-  files <- list.files(path = nfdir, pattern = "quant.sf", recursive = TRUE, full.names = TRUE)
-  names(files) <- sapply(strsplit(files, "/", fixed = TRUE), function(x) x[[length(x)-1]])
+  cat(crayon::blue("'$counts' is the estimate of the expected number of reads\n"))
+  cat(crayon::blue("'$abundance' is the estimate of the relative abundance in units of Transcripts Per Million (TPM)\n"))
+  cat(crayon::blue("'$length' is the estimate of the effective transcript length in each sample\n"))
+  cat(crayon::red("For 3'-tagged sequencing data, run salmon with '--noLengthCorrection'\n"))
 
-  tx2gene <- read.delim(file.path(nfdir, "star_salmon", "salmon_tx2gene.tsv"), header = FALSE)
-  colnames(tx2gene) = c("tx", "gene_id", "gene_name")
+  files <- list.files(path = file.path(nfdir, subdir), pattern = pattern, recursive = TRUE, full.names = TRUE)
+  names(files) <- sapply(strsplit(files, "/", fixed = TRUE), function(x) x[[length(x) - 1]])
 
-  txi <- tximport::tximport(files, type = "salmon", tx2gene = tx2gene[,c(1,3)], ...)
+  tx2gene <- read.delim(file.path(nfdir, subdir, tx2gene), header = FALSE, col.names = c("ENSEMBLTRANS", "ENSEMBL", "SYMBOL"))
 
+  txi <- tximport::tximport(files, type = type, tx2gene = tx2gene[, c("ENSEMBLTRANS", gene)], ...)
   txi$counts <- matrix(as.integer(round(txi$counts)), nrow = nrow(txi$counts), dimnames = dimnames(txi$counts))
+
+  if (!is.null(samplesheet)){
+    ix <- !tolower(names(txi)) %in% "countsfromabundance"
+    ids <- rownames(samplesheet)
+    if (!all( sapply(txi[ix], function(X) setequal(ids, colnames(X))) )){
+      stop("Error: Mismatching sample names!")
+    }
+    txi[ix] <- lapply(txi[ix], function(X) X[,rownames(samplesheet), drop = FALSE] )
+  }
 
   txi
 }
 
 
 
-#' Import samplesheet from nf-core/rnaseq pipeline
-#'
-#' @param file
-#' @param exclude
-#' @param ...
-#'
-#' @return
-#' @export
-#'
-#' @examples
-nf_getSamplesheet <- function(file, exclude = c("fastq_1", "fastq_2", "strandedness"), ...){
-
-  df <- read.csv(file, ...)
-  df <- df[, !colnames(df) %in% exclude, drop = FALSE]
-  tibble::column_to_rownames(df, "sample")
-
-}
-
-
-
-#' Get version of the used nf-core/rnaseq pipeline
+#' Get versions of tools used in the nf-core/rnaseq pipeline
 #'
 #' @param ymlfile
 #'
@@ -63,9 +56,9 @@ nf_getSamplesheet <- function(file, exclude = c("fastq_1", "fastq_2", "strandedn
 #' @export
 #'
 #' @examples
-nf_getVersion <- function(ymlfile){
+nf_versions <- function(ymlfile){
   yml <- yaml::read_yaml(file)
-  yml$Workflow$`nf-core/rnaseq`
+  yml
 }
 
 
@@ -255,6 +248,8 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
   if (ifelse(is.null(ncores), TRUE, ncores > 1)) stopifnot(requireNamespace("BiocParallel", quietly = TRUE))
   if (ihw == TRUE) stopifnot(requireNamespace("IHW", quietly = TRUE))
   if (shrink == TRUE) stopifnot(requireNamespace("ashr", quietly = TRUE))
+
+  library(DESeq2)
 
   results <- list()
 

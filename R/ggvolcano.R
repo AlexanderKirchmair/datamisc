@@ -40,8 +40,9 @@
 #' @export
 #'
 #' @examples
-ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shape = NULL,
-                      nlabels = NULL, lab_size = 12, repel = 1.5, attract = NULL, box.padding = 0.5, max_overlaps = Inf, seed = 123,
+#' data.frame(row.names = LETTERS, lfc = runif(length(LETTERS), -3, 3), padj = runif(length(LETTERS))) |> ggvolcano()
+ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shape = NULL, stroke = NA,
+                      nlabels = NULL, lab_size = 12, labface = "plain", repel = 1.5, attract = NULL, box.padding = 0.5, max_overlaps = Inf, seed = 123,
                       ptres = 0.05, clip = FALSE, symlim = TRUE, expand = c(0,0), nbreaks_x = 7, nbreaks_y = 7,
                       xlim = NULL, ylim = NULL,
                       color_up = "#eb9d0e", color_down = "#146bc7", color_nonsig = "#4d4d4d",
@@ -234,9 +235,9 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
   # points
   if (scale_size == FALSE){
-    gg %<>% + ggplot2::geom_point(size = point_size, alpha = 0.8)
+    gg %<>% + ggplot2::geom_point(size = point_size, alpha = 0.8, stroke = stroke)
   } else {
-    gg %<>% + ggplot2::geom_point(aes(size = score), alpha = 0.8)
+    gg %<>% + ggplot2::geom_point(aes(size = score), alpha = 0.8, stroke = stroke)
     gg %<>% + ggplot2::scale_size_continuous(range = c(point_size/5, point_size*2), guide = "none")
   }
 
@@ -259,12 +260,14 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   # point labels
   if (is.null(attract)) attract <- sqrt(repel)
   gg %<>% + ggrepel::geom_text_repel(data = subset(data, do_label == TRUE),
+                                     fontface = labface,
                             size = lab_size/ggplot2:::.pt,
                             seed = seed,
                             xlim = xylimits$xlim - c(-diff(xylimits$xlim), diff(xylimits$xlim))*0.18,
                             ylim = xylimits$ylim - c(-diff(xylimits$ylim)*0.3, diff(xylimits$ylim)*0.02),
                             force = repel, force_pull = attract,  max.overlaps = max_overlaps,
-                            point.padding = 0.35, box.padding = box.padding, max.time = 30, max.iter = 10^6, min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = 0.6)
+                            point.padding = 0.35, box.padding = box.padding, max.time = 30, max.iter = 10^6,
+                            min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = 0.6)
 
   gg %<>% + ggplot2::coord_cartesian(clip = "off")
 

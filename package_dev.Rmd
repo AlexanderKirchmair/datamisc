@@ -10,6 +10,13 @@ library(testthat)
 ```
 
 
+To do:
+correlation function (pval, pairwise.complete.obs)
+
+
+
+
+
 ```{r initial setup}
 
 use_mit_license()

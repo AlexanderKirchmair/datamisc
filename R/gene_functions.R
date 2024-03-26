@@ -7,6 +7,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 #' Gene ID conversion
 #'
 #' @param ids
@@ -21,6 +30,8 @@
 #'
 #' @examples
 #' convertGeneIDs(c("3098", "3099"))
+#' convertGeneIDs(c("3098", "3099"), to = "GENENAME")
+#' convertGeneIDs(c("3098", "3099"), to = "GENETYPE")
 convertGeneIDs <- function(ids, from = "ENTREZID", to = "SYMBOL", annotation = org.Hs.eg.db::org.Hs.eg.db, multiVals = "collapse", ...){
 
   stopifnot(requireNamespace("AnnotationDbi"))
@@ -38,6 +49,60 @@ convertGeneIDs <- function(ids, from = "ENTREZID", to = "SYMBOL", annotation = o
   res
 }
 
+
+
+
+#' Convert gene IDs between species
+#'
+#' @param genes
+#' @param taxon
+#' @param direction
+#' @param id_type
+#' @param na.omit
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' convertGeneSpecies("Egfr", taxon = "10090")
+#' convertGeneSpecies("EGFR", taxon = "10090", direction = "to")
+convertGeneSpecies <- function(genes, taxon = "10090", direction = "from", id_type = "symbol", na.omit = TRUE){
+
+  stopifnot(requireNamespace("babelgene"))
+
+  id_type <- tolower(id_type)
+
+  tax_avail <- babelgene:::orthologs_df$taxon_id |> unique()
+  if (!taxon %in% tax_avail){
+    message("Available taxon IDs:")
+    message(paste(tax_avail, collapse = ", "))
+    stop("Error: Taxon ID not found.")
+  }
+
+  id_avail <- c("symbol", "entrez", "ensembl")
+  if (!id_type %in% id_avail){
+    message("Available gene ID types:")
+    message(paste(id_avail, collapse = ", "))
+    stop("Error: Gene ID type not found.")
+  }
+
+  df <- babelgene:::orthologs_df |> subset(taxon_id == taxon)
+
+  if (direction == "from"){
+
+    genes <- df[match(genes, df[[id_type]]),][[paste0("human_", id_type)]]
+
+  } else if (direction == "to"){
+    genes <- df[match(genes, df[[paste0("human_", id_type)]]),][[id_type]]
+  }
+
+  if (na.omit == TRUE){
+    genes <- genes |> na.omit()
+    genes <- genes |> as.character()
+  }
+
+  genes
+}
 
 
 
@@ -341,6 +406,11 @@ readGTF <- function(file, columns = NULL, ...){
   df <- dplyr::distinct(df)
   df
 }
+
+
+
+
+
 
 
 
