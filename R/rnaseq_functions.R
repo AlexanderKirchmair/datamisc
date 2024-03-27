@@ -241,7 +241,7 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #'
 #' @examples
 runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
-                      filter = NULL, min_counts = 5, min_samples = 2,
+                      prefilter = NULL, postfilter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
                       shrink = TRUE, ihw = TRUE, vst = TRUE, rlog = FALSE, ...){
@@ -299,10 +299,10 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
 
   # Pre-filtering ----
-  if (is.null(filter)){
+  if (is.null(prefilter)){
     dds <- dds[rowSums(DESeq2::counts(dds) > min_counts, na.rm = TRUE) >= min_samples,]
-  } else if (length(filter) == nrow(dds)){
-    dds <- dds[naf(filter),]
+  } else if (length(prefilter) == nrow(dds)){
+    dds <- dds[naf(prefilter),]
   } else {
     stop("Index for filtering is of wrong length/format!")
   }
@@ -320,6 +320,13 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
   dds <- DESeq2::DESeq(dds, parallel = (ncores > 1), BPPARAM = bppar, ...)
 
 
+  # Post-filtering ----
+  if (!is.null(postfilter)){
+    if (is.logical(postfilter)) stop("Error: Please provide gene IDs to 'postfilter'!")
+    dds <- dds[intersect(postfilter, rownames(dds)),]
+  }
+
+
   # Normalized counts ----
   results$normcounts <- DESeq2::counts(dds, normalized = TRUE)
   if (vst == TRUE) results$vst <- SummarizedExperiment::assays(DESeq2::vst(dds, blind = TRUE))[[1]]
@@ -331,7 +338,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
     if (ihw == TRUE) filterFun <- IHW::ihw else filterFun <- NULL
 
-    results$results <- lapply(contrasts, function(tmp){
+    results$results <- lapply(contrasts, function(tmp){ # make parallel?
 
       if (is.null(filterFun)){
         mle <- DESeq2::results(dds, contrast = tmp, alpha = alpha)
