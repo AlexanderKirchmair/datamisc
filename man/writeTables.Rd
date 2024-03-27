@@ -4,19 +4,60 @@
 \alias{writeTables}
 \title{Write dataframes to .xlsx file}
 \usage{
-writeTables(data, file, rowNames = TRUE, adjwidths = TRUE, ...)
+writeTables(
+  data,
+  file,
+  rowNames = TRUE,
+  adjwidths = TRUE,
+  header = "bold",
+  scale_styles = list(NES = c(`#ffca0a` = 4, `#ffffff` = 0, `#6200d0` = -4)),
+  condition_styles = list(padj = c(fontColour = "#ff2222", bgFill = "#3be1ff", rule =
+    "<=0.05")),
+  highlight_styles = list(term = list(fgFill = "#3be1ff", values = c())),
+  check = FALSE,
+  ...
+)
 }
 \arguments{
-\item{adjwidths}{}
+\item{data}{dataframe or a named list of dataframes}
+
+\item{file}{file}
+
+\item{rowNames}{print rownames to sheet}
+
+\item{adjwidths}{adjust column widths}
+
+\item{header}{format headers in bold font}
+
+\item{scale_styles}{color gradient styles, e.g. scale_styles = list(NES = c("#6200d0" = -1, "#ffffff" = 0, "#ffca0a" = 1))}
+
+\item{condition_styles}{conditional highlighting styles, e.g. condition_styles = list(padj = c(fontColour = "#ff2222", rule = "<=0.05"))}
+
+\item{highlight_styles}{value highlighting styles, e.g. highlight_styles = list(genes = list(fgFill = "#3be1ff", values = c("MTOR", "EGFR")))}
+
+\item{check}{test if .xlsx file can be re-imported without changes to data}
+
+\item{...}{}
 }
 \description{
+Write a dataframe or a named list of dataframes to a .xlsx file
+
 Write a dataframe or a named list of dataframes to a .xlsx file
 }
 \examples{
 writeTables(mtcars, file = "example.xlsx")
 writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
 
+Write dataframes to .xlsx file
+
+writeTables(mtcars, file = "example.xlsx")
+writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
+writeTables(mtcars, file = "example.xlsx", scale_styles = list(mpg = c("#ffffff", "#6200d0"), cyl = c("#ffffff" = 0, "#ffca0a" = 10)))
+writeTables(mtcars, file = "example.xlsx", condition_styles = list(mpg = c(fontColour = "#6200d0", rule = ">20")))
+writeTables(iris, file = "example.xlsx", highlight_styles = list(Species = list(fgFill = "#3be1ff", values = c("setosa", "virginica"))), rowNames = FALSE)
 }
 \seealso{
+openxlsx::writeData
+
 openxlsx::writeData
 }

@@ -749,49 +749,12 @@ rjoin <- function(...){
 #' writeTables(mtcars, file = "example.xlsx")
 #' writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
 #'
-writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
-
-  if (!"list" %in% class(data)){
-    data <- setNames(list(data), gsub("\\..*$", "", basename(file)))
-  }
-
-  newnames <- cutstr(names(data), maxchar = 29)
-  if (any(duplicated(newnames))){
-    newnames <- cutstr(names(data), maxchar = 26)
-    newnames <- dedupl(newnames)
-  }
-  names(data) <- newnames
-
-  wb <- openxlsx::createWorkbook()
-
-  invisible(lapply(names(data), function(tmpname){
-    tmpdata <- data[[tmpname]]
-    openxlsx::addWorksheet(wb, tmpname)
-    openxlsx::writeData(wb, sheet = tmpname, x = tmpdata, rowNames = rowNames, ...)
-    if (adjwidths == TRUE){
-      openxlsx::setColWidths(wb, sheet = tmpname, cols = 1:(ncol(tmpdata)+1), widths = "auto")
-    }
-  }))
-
-  if (baseext(file) != "xlsx") file <- paste0(file, ".xlsx")
-  openxlsx::saveWorkbook(wb, file = file, overwrite = TRUE)
-}
-
-
-
-# writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE,
-#                         scale_column = NULL, scale_column2 = NULL, scale_colors = c("#ffca0a", "#ffffff", "#6200d0"), scale_rule = NULL, scale_rule2 = NULL, # limits = c(3,0,-3),
-#                         highlight_column = NULL, highlight_color = "#3be1ff", highlight_values = NULL,
-#                         condition_column, condition_rule = "<=0.05", condition_color = NULL, condition_fontcolor = "#ff2222",
-#                         check = FALSE, ...){
-#
-#   stopifnot(requireNamespace("openxlsx"))
+# writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
 #
 #   if (!"list" %in% class(data)){
 #     data <- setNames(list(data), gsub("\\..*$", "", basename(file)))
 #   }
 #
-#   # names
 #   newnames <- cutstr(names(data), maxchar = 29)
 #   if (any(duplicated(newnames))){
 #     newnames <- cutstr(names(data), maxchar = 26)
@@ -799,76 +762,19 @@ writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
 #   }
 #   names(data) <- newnames
 #
-#
-#   # styles
-#   highlight_style <- openxlsx::createStyle(fgFill = highlight_color)
-#   scale_style <- rev(scale_colors)
-#   condition_style <- createStyle(fontColour = condition_fontcolor, bgFill = condition_color)
-#   header_style <- openxlsx::createStyle(textDecoration = "bold")
-#
 #   wb <- openxlsx::createWorkbook()
 #
-#   res1 <- invisible(lapply(names(data), function(tmpname){
-#
-#     tmpdata <- as.data.frame(data[[tmpname]])
+#   invisible(lapply(names(data), function(tmpname){
+#     tmpdata <- data[[tmpname]]
 #     openxlsx::addWorksheet(wb, tmpname)
-#
-#     openxlsx::writeData(wb, sheet = tmpname, x = tmpdata, rowNames = rowNames, headerStyle = header_style, ...)
+#     openxlsx::writeData(wb, sheet = tmpname, x = tmpdata, rowNames = rowNames, ...)
 #     if (adjwidths == TRUE){
-#       openxlsx::setColWidths(wb, sheet = tmpname, cols = 1:(ncol(tmpdata) + as.numeric(rowNames)), widths = "auto")
+#       openxlsx::setColWidths(wb, sheet = tmpname, cols = 1:(ncol(tmpdata)+1), widths = "auto")
 #     }
-#
-#     if (!is.null(highlight_column)){
-#       if (highlight_column %in% colnames(tmpdata)){
-#         openxlsx::addStyle(wb, sheet = tmpname, style = highlight_style,
-#                            rows = 1 + which(tmpdata[[highlight_column]] %in% highlight_values),
-#                            cols = which(colnames(tmpdata) == highlight_column) + as.numeric(rowNames))
-#       }
-#     }
-#
-#     if (!is.null(scale_column)){
-#       if (any(scale_column %in% colnames(tmpdata))){
-#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) %in% scale_column) + as.numeric(rowNames),
-#                                         rows = 1 + 1:nrow(tmpdata),
-#                                         rule = scale_rule,
-#                                         style = scale_style,
-#                                         type = "colourScale")
-#       }
-#     }
-#
-#     if (!is.null(scale_column2)){
-#       if (any(scale_column2 %in% colnames(tmpdata))){
-#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) %in% scale_column2) + as.numeric(rowNames),
-#                                         rows = 1 + 1:nrow(tmpdata),
-#                                         rule = scale_rule2,
-#                                         style = scale_style,
-#                                         type = "colourScale")
-#       }
-#     }
-#
-#     if (!is.null(condition_column)){
-#       if (any(condition_column %in% colnames(tmpdata))){
-#         openxlsx::conditionalFormatting(wb, sheet = tmpname, cols = which(colnames(tmpdata) == condition_column) + as.numeric(rowNames),
-#                                         rows = 1 + 1:nrow(tmpdata),
-#                                         rule = condition_rule,
-#                                         style = condition_style)
-#       }
-#     }
-#
-#     tmpdata
 #   }))
 #
 #   if (baseext(file) != "xlsx") file <- paste0(file, ".xlsx")
 #   openxlsx::saveWorkbook(wb, file = file, overwrite = TRUE)
-#
-#
-#   if (check == TRUE){
-#     res2 <- readTables(file, rowNames = rowNames)
-#     if (is.data.frame(res2)) res2 <- list(res2)
-#     for (i in 1:length(res2)){
-#       stopifnot(all.equal(res1[[i]], res2[[i]]))
-#     }
-#   }
 # }
 
 
@@ -876,9 +782,169 @@ writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
 
 
 
+#' Write dataframes to .xlsx file
+#'
+#' @description
+#' Write a dataframe or a named list of dataframes to a .xlsx file
+#'
+#' @param data dataframe or a named list of dataframes
+#' @param file file
+#' @param rowNames print rownames to sheet
+#' @param adjwidths adjust column widths
+#' @param header format headers in bold font
+#' @param scale_styles color gradient styles, e.g. scale_styles = list(NES = c("#6200d0" = -1, "#ffffff" = 0, "#ffca0a" = 1))
+#' @param condition_styles conditional highlighting styles, e.g. condition_styles = list(padj = c(fontColour = "#ff2222", rule = "<=0.05"))
+#' @param highlight_styles value highlighting styles, e.g. highlight_styles = list(genes = list(fgFill = "#3be1ff", values = c("MTOR", "EGFR")))
+#' @param check test if .xlsx file can be re-imported without changes to data
+#' @param ...
+#'
+#' @return
+#' @export
+#' @seealso openxlsx::writeData
+#' @examples
+#' writeTables(mtcars, file = "example.xlsx")
+#' writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
+#' writeTables(mtcars, file = "example.xlsx", scale_styles = list(mpg = c("#ffffff", "#6200d0"), cyl = c("#ffffff" = 0, "#ffca0a" = 10)))
+#' writeTables(mtcars, file = "example.xlsx", condition_styles = list(mpg = c(fontColour = "#6200d0", rule = ">20")))
+#' writeTables(iris, file = "example.xlsx", highlight_styles = list(Species = list(fgFill = "#3be1ff", values = c("setosa", "virginica"))), rowNames = FALSE)
+writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE,
+                        header = "bold",
+                        scale_styles = list(NES = c("#ffca0a" = 4, "#ffffff" = 0, "#6200d0" = -4)),
+                        condition_styles = list(padj = c(fontColour = "#ff2222", bgFill = "#3be1ff", rule = "<=0.05")),
+                        highlight_styles = list(term = list(fgFill = "#3be1ff", values = c())),
+                        check = FALSE, ...){
+
+  stopifnot(requireNamespace("openxlsx"))
+
+  datamisc::colorcat("Add color gradients with 'scale_styles'", col = "blue")
+  datamisc::colorcat("Add conditional highlighting with 'condition_styles'", col = "blue")
+  datamisc::colorcat("Highlight certain values with 'highlight_styles'", col = "blue")
+  datamisc::colorcat("Additional style arguments are passed to 'createStyle()'", col = "blue")
 
 
+  # helper functions
+  .get_scale_style <- function(style){
+    if (is.null(names(style))){
+      colors <- style
+      limits <- NULL
+    } else {
+      limits <- sort(style)
+      colors <- names(limits)
 
+    }
+    list(style = colors, rule = limits)
+  }
+
+  .get_condition_style <- function(style){
+    style <- as.list(style)
+    rule <- style$rule
+    style$rule <- NULL
+    style <- do.call(openxlsx::createStyle, style)
+    list(style = style, rule = rule)
+  }
+
+  .get_highlight_style <- function(style){
+    values <- style[["values"]]
+    style["values"] <- NULL
+    style <- do.call(openxlsx::createStyle, style)
+    list(style = style, values = values)
+  }
+
+
+  if (!"list" %in% class(data)){
+    data <- setNames(list(data), gsub("\\..*$", "", basename(file)))
+  }
+
+  # adjust sheet names
+  newnames <- cutstr(names(data), maxchar = 29)
+  if (any(duplicated(newnames))){
+    newnames <- cutstr(names(data), maxchar = 26)
+    newnames <- dedupl(newnames)
+  }
+  names(data) <- newnames
+
+
+  # define styles
+  if (!is.null(header)){
+    header_style <- openxlsx::createStyle(textDecoration = header)
+  }
+
+  # create workbook
+  wb <- openxlsx::createWorkbook()
+
+  # add sheets
+  table <- invisible(lapply(names(data), function(tmpname){
+
+    tmpdata <- as.data.frame(data[[tmpname]])
+    openxlsx::addWorksheet(wb, tmpname)
+
+    # write data to sheet
+    openxlsx::writeData(wb, sheet = tmpname, x = tmpdata, rowNames = rowNames, headerStyle = header_style, ...)
+
+    if (adjwidths == TRUE){
+      openxlsx::setColWidths(wb, sheet = tmpname, cols = 1:(ncol(tmpdata) + as.numeric(rowNames)), widths = "auto")
+    }
+
+    # apply styles: color scales
+    if (length(scale_styles) > 0){
+      for (col in names(scale_styles)){
+        if (!col %in% colnames(tmpdata)) next
+        col_style <- .get_scale_style(scale_styles[[col]])
+        openxlsx::conditionalFormatting(wb,
+                                        sheet = tmpname,
+                                        cols = which(colnames(tmpdata) %in% col) + as.numeric(rowNames),
+                                        rows = 1 + 1:nrow(tmpdata), # all rows
+                                        rule = col_style$rule,
+                                        style = col_style$style,
+                                        type = "colourScale")
+      }
+    }
+
+    # apply styles: conditional highlighting
+    if (length(condition_styles) > 0){
+      for (col in names(condition_styles)){
+        if (!col %in% colnames(tmpdata)) next
+        col_style <- .get_condition_style(condition_styles[[col]])
+        openxlsx::conditionalFormatting(wb,
+                                        sheet = tmpname,
+                                        cols = which(colnames(tmpdata) %in% col) + as.numeric(rowNames),
+                                        rows = 1 + 1:nrow(tmpdata), # all rows
+                                        rule = col_style$rule,
+                                        style = col_style$style)
+      }
+    }
+
+
+    # apply styles: value highlighting
+    if (length(highlight_styles) > 0){
+      for (col in names(highlight_styles)){
+        if (!col %in% colnames(tmpdata)) next
+        col_style <- .get_highlight_style(highlight_styles[[col]])
+        openxlsx::addStyle(wb,
+                           sheet = tmpname,
+                           cols = which(colnames(tmpdata) %in% col) + as.numeric(rowNames),
+                           rows = 1 + which(tmpdata[[col]] %in% col_style$values), # select rows
+                           style = col_style$style)
+      }
+    }
+
+    tmpdata
+  }))
+
+
+  # save file
+  if (baseext(file) != "xlsx") file <- paste0(file, ".xlsx")
+  openxlsx::saveWorkbook(wb, file = file, overwrite = TRUE)
+
+  # check if writing to excel changed any of the values
+  if (check == TRUE){
+    table_check <- readTables(file, rowNames = rowNames)
+    if (is.data.frame(table_check)) table_check <- list(table_check)
+    for (i in 1:length(table_check)){
+      print(all.equal(table[[i]], table_check[[i]]))
+    }
+  }
+}
 
 
 
@@ -897,6 +963,10 @@ writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE, ...){
 readTables <- function(file, rowNames = TRUE, ...){
   sheets <- openxlsx::getSheetNames(file)
   res <- lapply(setNames(sheets, sheets), function(tmp) openxlsx::read.xlsx(sheet = tmp, xlsxFile = file, rowNames = rowNames, ...) )
+
+  # add a check for common excel gene fails
+
+
   if (length(res) == 1) res <- res[[1]]
   res
 }
