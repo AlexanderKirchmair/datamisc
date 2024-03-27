@@ -809,9 +809,9 @@ rjoin <- function(...){
 #' writeTables(iris, file = "example.xlsx", highlight_styles = list(Species = list(fgFill = "#3be1ff", values = c("setosa", "virginica"))), rowNames = FALSE)
 writeTables <- function(data, file, rowNames = TRUE, adjwidths = TRUE,
                         header = "bold",
-                        scale_styles = list(NES = c("#ffca0a" = 4, "#ffffff" = 0, "#6200d0" = -4)),
-                        condition_styles = list(padj = c(fontColour = "#ff2222", bgFill = "#3be1ff", rule = "<=0.05")),
-                        highlight_styles = list(term = list(fgFill = "#3be1ff", values = c())),
+                        scale_styles = NULL,
+                        condition_styles = NULL,
+                        highlight_styles = NULL,
                         check = FALSE, ...){
 
   stopifnot(requireNamespace("openxlsx"))
