@@ -9,7 +9,10 @@ runDESeq2(
   design = NULL,
   formula = ~1,
   contrasts = NULL,
-  filter = NULL,
+  prefilter = NULL,
+  postfilter = NULL,
+  min_counts = 5,
+  min_samples = 2,
   ctrlgenes = NULL,
   sizefactors = NULL,
   alpha = 0.05,
@@ -32,7 +35,9 @@ runDESeq2(
 
 \item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel)}
 
-\item{filter}{Vector for filtering (subsetting) data}
+\item{min_counts}{min_counts in min_samples for filtering}
+
+\item{min_samples}{min_counts in min_samples for filtering}
 
 \item{ctrlgenes}{Control genes for normalization (housekeeping genes)}
 
@@ -55,6 +60,8 @@ runDESeq2(
 \item{rlog}{Add rlog-transformed assay}
 
 \item{...}{Parameters passed to DESeq}
+
+\item{filter}{Vector for filtering (subsetting) data}
 }
 \description{
 Differential expression analysis with DESeq2

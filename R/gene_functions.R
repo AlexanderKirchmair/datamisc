@@ -2,20 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #' Gene ID conversion
 #'
 #' @param ids
@@ -333,6 +319,28 @@ convertGeneSets <- function(genesets, from = NULL, to = "list", term = term, gen
 
   genesets
 }
+
+
+
+
+#' Get random genes
+#'
+#' @param n
+#' @param keytype
+#' @param dbi
+#' @param replace
+#' @param prob
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' rgenes(100)
+rgenes <- function(n = 20, keytype = "SYMBOL", dbi = org.Hs.eg.db::org.Hs.eg.db, replace = FALSE, prob = NULL, ...){
+  AnnotationDbi::keys(dbi, keytype = keytype, ...) |> sample(size = n, replace = replace, prob = prob)
+}
+
 
 
 

@@ -632,7 +632,7 @@ runGSEA <- function(data, genesets = NULL, rank_by = c(stat, baseMean, svalue), 
   if (as.df == TRUE){
     results <- as.data.frame(results)
     results <- dplyr::select(results, -Description)
-    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalues, size = setSize)
+    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalue, size = setSize)
   }
 
   results
@@ -699,7 +699,7 @@ runGSVA <- function(data, genesets = NULL, method = "gsva", kcdf = "Gaussian", n
     genesets <- convertGeneSets(genesets, to = "list")
   }
 
-  ncores <- min(8, ncores, parallel::detectCores())
+  ncores <- min(ncores, parallel::detectCores())
   data <- data.matrix(data)
 
   results <- GSVA::gsva(data,
