@@ -222,6 +222,8 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param formula Formula
 #' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
 #' @param filter Vector for filtering (subsetting) data
+#' @param min_counts min_counts in min_samples for filtering
+#' @param min_samples min_counts in min_samples for filtering
 #' @param ctrlgenes Control genes for normalization (housekeeping genes)
 #' @param sizefactors Pre-calculated size factors
 #' @param alpha Significance level (default = 0.05)
@@ -238,7 +240,8 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @export
 #'
 #' @examples
-runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filter = NULL,
+runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
+                      filter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
                       shrink = TRUE, ihw = TRUE, vst = TRUE, rlog = FALSE, ...){
@@ -266,18 +269,21 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
 
   # Input data ----
   if ("SummarizedExperiment" %in% class(data)){
+    cat(crayon::blue("Using 'SummarizedExperiment' as input for 'DESeqDataSet'\n"))
     if (is.null(design)) design <- data.frame(row.names = colnames(assays(data)[[1]]))
     data <- data[,rownames(design)]
     design <- droplevels(design)
     dds <- DESeq2::DESeqDataSet(data, colData = design, design = formula)
 
-  } else if ("matrix" %in% class(data)){
+  } else if (any(class(data) %in% c("matrix", "data.frame"))){
+    cat(crayon::blue("Using raw counts matrix as input for 'DESeqDataSetFromMatrix'\n"))
     if (is.null(design)) design <- data.frame(row.names = colnames(data))
     data <- data[,rownames(design)]
     design <- droplevels(design)
     dds <- DESeq2::DESeqDataSetFromMatrix(data, colData = design, design = formula)
 
   } else if ("list" %in% class(data)){
+    cat(crayon::blue("Using tximport list as input for 'DESeqDataSetFromTximport'\n"))
     if (is.null(design)) design <- data.frame(row.names = colnames(data$abundance))
     for (i in seq_along(data)){
       if (!is.null(ncol(data[[i]]))){
@@ -293,9 +299,8 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, filt
 
 
   # Pre-filtering ----
-
   if (is.null(filter)){
-    dds <- dds[rowSums(DESeq2::counts(dds) > 0, na.rm = TRUE) != 0,]
+    dds <- dds[rowSums(DESeq2::counts(dds) > min_counts, na.rm = TRUE) >= min_samples,]
   } else if (length(filter) == nrow(dds)){
     dds <- dds[naf(filter),]
   } else {
