@@ -35,6 +35,10 @@ runDESeq2(
 
 \item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel)}
 
+\item{prefilter}{Filter before normalization}
+
+\item{postfilter}{Filter after normalization}
+
 \item{min_counts}{min_counts in min_samples for filtering}
 
 \item{min_samples}{min_counts in min_samples for filtering}
@@ -47,7 +51,7 @@ runDESeq2(
 
 \item{ordered}{Order results (default = TRUE)}
 
-\item{df}{Return results ass data.frame}
+\item{df}{Return results as data.frame}
 
 \item{ncores}{Parallel processing}
 
@@ -60,9 +64,11 @@ runDESeq2(
 \item{rlog}{Add rlog-transformed assay}
 
 \item{...}{Parameters passed to DESeq}
-
-\item{filter}{Vector for filtering (subsetting) data}
 }
 \description{
 Differential expression analysis with DESeq2
+}
+\examples{
+DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE)
+DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE, ncores = 5)
 }

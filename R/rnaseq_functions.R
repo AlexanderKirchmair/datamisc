@@ -221,14 +221,15 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param design Experimental design/colData
 #' @param formula Formula
 #' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
-#' @param filter Vector for filtering (subsetting) data
+#' @param prefilter Filter before normalization
+#' @param postfilter Filter after normalization
 #' @param min_counts min_counts in min_samples for filtering
 #' @param min_samples min_counts in min_samples for filtering
 #' @param ctrlgenes Control genes for normalization (housekeeping genes)
 #' @param sizefactors Pre-calculated size factors
 #' @param alpha Significance level (default = 0.05)
 #' @param ordered Order results (default = TRUE)
-#' @param df Return results ass data.frame
+#' @param df Return results as data.frame
 #' @param ncores Parallel processing
 #' @param shrink Use ashr for log2FC shrinkage
 #' @param ihw Use independent hypothesis weighting
@@ -240,11 +241,20 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @export
 #'
 #' @examples
+#' DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE)
+#' DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE, ncores = 5)
 runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
                       prefilter = NULL, postfilter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
                       shrink = TRUE, ihw = TRUE, vst = TRUE, rlog = FALSE, ...){
+
+  datamisc::colorcat("DESeq2 differential expression analysis", col = "blue")
+  datamisc::colorcat("Use 'prefilter' to filter genes before normalization.", col = "blue")
+  datamisc::colorcat("Use 'ctrlgenes' for normalization.", col = "blue")
+  datamisc::colorcat("Use 'sizefactors' to directly pass normalization factors.", col = "blue")
+  datamisc::colorcat("Use 'postfilter' to filter genes before normalization.", col = "blue")
+
 
   stopifnot(requireNamespace("DESeq2", quietly = TRUE))
   stopifnot(requireNamespace("SummarizedExperiment", quietly = TRUE))
@@ -261,9 +271,22 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
   if (is.null(ncores)) ncores <- min(c(4, max(c(1, length(contrasts)))))
   bppar <- NULL
   if (ncores > 1){
-    BiocParallel::register(BiocParallel::MulticoreParam(workers = ncores))
+    if (tolower(.Platform$OS.type) == "windows"){
+      BiocParallel::register(BiocParallel::SnowParam(workers = ncores))
+    } else {
+      BiocParallel::register(BiocParallel::MulticoreParam(workers = ncores))
+    }
     bppar <- BiocParallel::bpparam()
     message(paste0("Parallel on ", ncores, " cores..."))
+
+    lapply_fun <- function(X, FUN, BPPARAM = NULL, ...){
+      BiocParallel::bplapply(X, FUN = FUN, BPPARAM = BPPARAM, ...)
+    }
+
+  } else {
+    lapply_fun <- function(X, FUN, BPPARAM = NULL, ...){
+      lapply(X, FUN = FUN)
+    }
   }
 
 
@@ -292,6 +315,11 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
     }
     design <- droplevels(design)
     dds <- DESeq2::DESeqDataSetFromTximport(data, colData = design, design = formula)
+
+  } else if ("DESeqDataSet" %in% class(data)){
+    cat(crayon::blue("Using a 'DESeqDataSet' object as input\n"))
+      design <- SummarizedExperiment::colData(data)
+      dds <- data
 
   } else {
     stop("Wrong input data format!")
@@ -338,7 +366,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
     if (ihw == TRUE) filterFun <- IHW::ihw else filterFun <- NULL
 
-    results$results <- lapply(contrasts, function(tmp){ # make parallel?
+    results$results <- lapply_fun(contrasts, BPPARAM = bppar, FUN = function(tmp){
 
       if (is.null(filterFun)){
         mle <- DESeq2::results(dds, contrast = tmp, alpha = alpha)
