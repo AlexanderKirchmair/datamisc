@@ -214,51 +214,59 @@ getPaletteer <- function(length = NULL, continuous = TRUE, discrete = TRUE){
 
 
 
-
-
-
-
-
 #' Basic ggplot2 theme
 #'
-#' @param base_size
-#' @param base_family
-#' @param base_line_size
-#' @param base_rect_size
-#' @param base_color
-#' @param grid
+#' @param fontsize Base font size
+#' @param fontfamily Base font family
+#' @param lwd Base linewidth
+#' @param color Base color
+#' @param grid.color Grid color (no grid if NULL)
+#' @param title.face Title face (plain/bold/...)
+#' @param title.cex Title size factor
+#' @param axis.title.cex Axis title size factor
+#' @param axis.text.cex Axis text size factor
+#' @param grid.cex Grid linewidth size factor
 #' @param ... other parameters passed to theme(...)
 #' @inheritParams ggplot2::theme_bw
 #'
 #' @export
 #'
 #' @examples
-theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_size/22, base_rect_size = base_size/22, base_color = "black", grid = FALSE, ...){
+#' ggplot(iris, aes(Sepal.Length, Petal.Length)) + geom_point() + ggtitle("Iris") + theme_basic()
+#' ggplot(iris, aes(Sepal.Length, Petal.Length, color = Species)) + geom_point() + ggtitle("Iris") + theme_basic(grid.color = "grey70")
+theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "black", grid.color = NULL,
+                        title.face = "bold", title.cex = 1, axis.title.cex = 1, axis.text.cex = 0.8, grid.cex = 0.7, ...){
 
-  th1 <- ggplot2::theme_bw(base_size = base_size,
-                          base_family = base_family,
-                          base_line_size = base_line_size,
-                          base_rect_size = base_rect_size)
+  if (is.null(lwd)) lwd <- fontsize/22
 
-  th2 <- ggplot2::theme(line =  ggplot2::element_line(colour = base_color, size = base_line_size),
-                   rect =  ggplot2::element_rect(colour = base_color, fill = NA, size = base_rect_size),
-                   text =  ggplot2::element_text(colour = base_color, size = base_size, family = base_family),
-                   title =  ggplot2::element_text(colour = base_color),
-                   axis.text =  ggplot2::element_text(colour = base_color, size =  ggplot2::rel(0.75)),
-                   axis.ticks =  ggplot2::element_line(colour = base_color),
-                   axis.line =  ggplot2::element_line(colour = base_color),
-                   legend.text =  ggplot2::element_text(colour = base_color),
-                   legend.title =  ggplot2::element_text(colour = base_color),
-                   legend.title.align = 0,
-                   panel.border =  ggplot2::element_blank(),
-                   panel.grid =  ggplot2::element_blank(),
-                   plot.title =  ggplot2::element_text(colour = base_color),
-                   strip.background =  ggplot2::element_blank(),
-                   strip.text =  ggplot2::element_text(colour = base_color),
-                   ...)
+  th1 <- ggplot2::theme_bw(base_size = fontsize,
+                           base_family = fontfamily,
+                           base_line_size = lwd,
+                           base_rect_size = lwd)
+
+  th2 <- ggplot2::theme(line = ggplot2::element_line(colour = color, linewidth = lwd),
+                        rect = ggplot2::element_rect(colour = color, fill = NA, linewidth = lwd),
+                        text = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
+                        title = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
+                        axis.text = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.text.cex)),
+                        axis.title = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.title.cex)),
+                        axis.ticks = ggplot2::element_line(colour = color),
+                        axis.line = ggplot2::element_line(colour = color, lineend = "square"),
+                        legend.text = ggplot2::element_text(colour = color),
+                        legend.title = ggplot2::element_text(colour = color, hjust = 0),
+                        panel.border = ggplot2::element_blank(),
+                        panel.grid = ggplot2::element_blank(),
+                        plot.title = ggplot2::element_text(colour = color, face = title.face, hjust = 0.5, size = ggplot2::rel(title.cex)),
+                        strip.background = ggplot2::element_blank(),
+                        strip.text = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
+                        strip.clip = "off",
+                        ...)
+
+  if (!is.null(grid.color)){
+    th2 <- ggplot2::`%+replace%`(th2, ggplot2::theme(panel.grid.major = ggplot2::element_line(linewidth = ggplot2::rel(grid.cex), colour = grid.color)))
+  }
 
   th <- ggplot2::`%+replace%`(th1, th2)
-
   th
 
 }
@@ -278,9 +286,9 @@ theme_basic <- function(base_size = 18, base_family = "", base_line_size = base_
 #'
 #' @examples
 theme_dev <- function(theme_orig){
-  theme_orig %+replace%
-    theme(panel.background = element_rect(fill = rgb(0.5, 0.5, 0.5)),
-          plot.background = element_rect(fill = "darkblue"))
+  th2 <- theme(panel.background = element_rect(fill = rgb(0.5, 0.5, 0.5)),
+               plot.background = element_rect(fill = "darkblue"))
+  ggplot2::`%+replace%`(theme_orig, th2)
 }
 
 

@@ -5,26 +5,46 @@
 \title{Basic ggplot2 theme}
 \usage{
 theme_basic(
-  base_size = 18,
-  base_family = "",
-  base_line_size = base_size/22,
-  base_rect_size = base_size/22,
-  base_color = "black",
-  grid = FALSE,
+  fontsize = 18,
+  fontfamily = "",
+  lwd = NULL,
+  color = "black",
+  grid.color = NULL,
+  title.face = "bold",
+  title.cex = 1,
+  axis.title.cex = 1,
+  axis.text.cex = 0.8,
+  grid.cex = 0.7,
   ...
 )
 }
 \arguments{
-\item{base_size}{base font size, given in pts.}
+\item{fontsize}{Base font size}
 
-\item{base_family}{base font family}
+\item{fontfamily}{Base font family}
 
-\item{base_line_size}{base size for line elements}
+\item{lwd}{Base linewidth}
 
-\item{base_rect_size}{base size for rect elements}
+\item{color}{Base color}
+
+\item{grid.color}{Grid color (no grid if NULL)}
+
+\item{title.face}{Title face (plain/bold/...)}
+
+\item{title.cex}{Title size factor}
+
+\item{axis.title.cex}{Axis title size factor}
+
+\item{axis.text.cex}{Axis text size factor}
+
+\item{grid.cex}{Grid linewidth size factor}
 
 \item{...}{other parameters passed to theme(...)}
 }
 \description{
 Basic ggplot2 theme
+}
+\examples{
+ggplot(iris, aes(Sepal.Length, Petal.Length)) + geom_point() + ggtitle("Iris") + theme_basic()
+ggplot(iris, aes(Sepal.Length, Petal.Length, color = Species)) + geom_point() + ggtitle("Iris") + theme_basic(grid.color = "grey70")
 }
