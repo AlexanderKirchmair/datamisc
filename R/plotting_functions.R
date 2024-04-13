@@ -14,7 +14,9 @@
 #' @export
 #'
 #' @examples
-ggbar <- function(data, aes = NULL, colors = NULL, ...){
+#' ggbar(setNames(1:5, LETTERS[1:5]))
+#' ggbar(mtcars$mpg)
+ggbar <- function(data, aes = NULL, colors = NULL, x.cex = 1, rot = NULL, ...){
 
   if (is.null(dim(data))){
     # vector input
@@ -22,6 +24,7 @@ ggbar <- function(data, aes = NULL, colors = NULL, ...){
     if (!is.null(names(data))) df$x <- factor(names(data), ordered = TRUE, levels = names(data))
     if (is.null(colors)) colors <- "#76a3b8"
     aes <- ggplot2::aes(x, y)
+
   } else {
     # data.frame input
     df <- data
@@ -30,10 +33,18 @@ ggbar <- function(data, aes = NULL, colors = NULL, ...){
     if (is.null(aes)) aes <- ggplot2::aes(x, y)
   }
 
+  # plotting
+  max_chars <- max(nchar(as.character(df$x)))
+  if (is.null(rot)){
+    rot <- max_chars > 3
+  }
+
 
   gg <- ggplot2::ggplot(data = df, mapping = aes) +
     ggplot2::`%+replace%`(theme_basic(),
-                          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, size = 8, vjust = 0.5, hjust = 1))) +
+                          ggplot2::theme(axis.text.x = ggplot2::element_text(angle = ifelse(rot, 90, 0), size = ggplot2::rel(x.cex),
+                                                                             vjust = ifelse(rot, 0.5, 0.5),
+                                                                             hjust = ifelse(rot, 1, 0.5))) ) +
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(0)) +
     ggplot2::xlab("") +
     ggplot2::ylab("")

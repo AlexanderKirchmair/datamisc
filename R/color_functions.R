@@ -52,6 +52,68 @@ colorcat <- function(str = "text", col = rgb(1,1,1), add = "\n"){
 
 
 
+
+
+
+
+
+#' Get color gradients
+#'
+#' @param colors vector of colors
+#' @param breaks vector of breaks (required for 'colorRamp2')
+#' @param type generate gradient as ggplot2, colorRamp2 or none
+#' @param name use a pre-defined gradient
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' gradient(colors = c("-3 "= "blue", "0" = "white", "3" = "orangered"))
+#' gradient(name = "bluered3", type = "colorramp2")
+#' ggplot(iris, aes(Sepal.Length, Petal.Length, color = Sepal.Width)) + geom_point() + gradient(c("red", "green", "blue"), breaks = c(0,1,5))
+#' ggplot(iris, aes(Sepal.Length, Petal.Length, color = Sepal.Width)) + geom_point() + gradient(c("red", "green", "blue"))
+#' ComplexHeatmap::Heatmap(iris[,-5], col = gradient(name = "blueyellow3", type = "colorramp2", breaks = c(0,4,8)))
+gradient <- function(colors, breaks = NULL, type = c("ggplot2", "colorRamp2"), name = NULL){
+
+  if (!is.null(name)){
+    if (name == "bluered3") colors <- c("blue", "white", "red")
+    if (name == "blueyellow3") colors <- c("#146bc7", "white", "#eb9d0e")
+  }
+
+  if (is.null(breaks) & !is.null(names(colors))){
+    breaks <- as.numeric(names(colors))
+  }
+
+  # convert to output type
+  type <- type[1]
+
+  if (tolower(type) == "ggplot2"){
+    if (is.null(breaks)){
+      ggplot2::scale_color_gradientn(colours = colors)
+    } else {
+      ggplot2::scale_color_gradientn(colours = colors, values = rangescale(breaks), limits = c(min(breaks), max(breaks)))
+    }
+
+  } else if (tolower(type) == "colorramp2"){
+    if (is.null(breaks)){
+      warning("Warning: Automatically setting breaks for 'colorRamp2' color scale")
+      breaks <- seq(colors) - mean(seq(colors)) * 2
+    }
+    circlize::colorRamp2(breaks = as.numeric(breaks), colors = colors)
+
+  } else {
+    colors
+
+  }
+}
+
+
+
+
+
+
+
+
 #' Generate color mappings for discrete data columns in a dataframe
 #'
 #' @param dataframe
