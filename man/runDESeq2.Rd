@@ -15,13 +15,15 @@ runDESeq2(
   min_samples = 2,
   ctrlgenes = NULL,
   sizefactors = NULL,
+  RUV = list(),
+  SVA = list(),
   alpha = 0.05,
   ordered = TRUE,
   df = TRUE,
   ncores = NULL,
   shrink = TRUE,
   ihw = TRUE,
-  vst = TRUE,
+  vst = FALSE,
   rlog = FALSE,
   ...
 )
@@ -47,6 +49,10 @@ runDESeq2(
 
 \item{sizefactors}{Pre-calculated size factors}
 
+\item{RUV}{RUV batch effect correction: 'list(empirical = \emph{genes}, group = \emph{column}, n = \emph{n_vars})'}
+
+\item{SVA}{SVA batch effect correction: 'list(reduced = \emph{formula}, n = \emph{n_vars})'}
+
 \item{alpha}{Significance level (default = 0.05)}
 
 \item{ordered}{Order results (default = TRUE)}
@@ -69,6 +75,9 @@ runDESeq2(
 Differential expression analysis with DESeq2
 }
 \examples{
-DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE)
-DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE, ncores = 5)
+dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = TRUE, ncores = 5)
+dds |> runDESeq2(formula = ~ condition, RUV = list(empirical = sample(rownames(dds), 10)), contrasts = list(BvsA = c("condition", "B", "A")))
+dds |> runDESeq2(formula = ~ condition, SVA = list(reduced = ~ 1), contrasts = list(BvsA = c("condition", "B", "A")))
 }

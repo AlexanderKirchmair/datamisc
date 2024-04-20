@@ -4,11 +4,15 @@
 \alias{ggbar}
 \title{Barplots with ggplot2}
 \usage{
-ggbar(data, aes = NULL, colors = NULL, ...)
+ggbar(data, aes = NULL, colors = NULL, x.cex = 1, rot = NULL, ...)
 }
 \arguments{
 \item{...}{}
 }
 \description{
 Barplots with ggplot2
+}
+\examples{
+ggbar(setNames(1:5, LETTERS[1:5]))
+ggbar(mtcars$mpg)
 }

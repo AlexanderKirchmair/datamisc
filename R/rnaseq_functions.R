@@ -227,6 +227,8 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param min_samples min_counts in min_samples for filtering
 #' @param ctrlgenes Control genes for normalization (housekeeping genes)
 #' @param sizefactors Pre-calculated size factors
+#' @param RUV RUV batch effect correction: 'list(empirical = *genes*, group = *column*, n = *n_vars*)'
+#' @param SVA SVA batch effect correction: 'list(reduced = *formula*, n = *n_vars*)'
 #' @param alpha Significance level (default = 0.05)
 #' @param ordered Order results (default = TRUE)
 #' @param df Return results as data.frame
@@ -241,13 +243,17 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @export
 #'
 #' @examples
-#' DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE)
-#' DESeq2::makeExampleDESeqDataSet() |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = FALSE, ncores = 5)
+#' dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+#' dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+#' dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = TRUE, ncores = 5)
+#' dds |> runDESeq2(formula = ~ condition, RUV = list(empirical = sample(rownames(dds), 10)), contrasts = list(BvsA = c("condition", "B", "A")))
+#' dds |> runDESeq2(formula = ~ condition, SVA = list(reduced = ~ 1), contrasts = list(BvsA = c("condition", "B", "A")))
 runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
                       prefilter = NULL, postfilter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
+                      RUV = list(), SVA = list(),
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
-                      shrink = TRUE, ihw = TRUE, vst = TRUE, rlog = FALSE, ...){
+                      shrink = TRUE, ihw = TRUE, vst = FALSE, rlog = FALSE, ...){
 
   datamisc::colorcat("DESeq2 differential expression analysis", col = "blue")
   datamisc::colorcat("Use 'prefilter' to filter genes before normalization.", col = "blue")
@@ -261,6 +267,8 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
   if (ifelse(is.null(ncores), TRUE, ncores > 1)) stopifnot(requireNamespace("BiocParallel", quietly = TRUE))
   if (ihw == TRUE) stopifnot(requireNamespace("IHW", quietly = TRUE))
   if (shrink == TRUE) stopifnot(requireNamespace("ashr", quietly = TRUE))
+  if (length(RUV) > 0) stopifnot(requireNamespace("RUVSeq", quietly = TRUE))
+  if (length(SVA) > 0) stopifnot(requireNamespace("sva", quietly = TRUE))
 
   library(DESeq2)
 
@@ -268,7 +276,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
 
   # Parallel setup ----
-  if (is.null(ncores)) ncores <- min(c(4, max(c(1, length(contrasts)))))
+  if (is.null(ncores)) ncores <- min(c(10, max(c(1, length(contrasts)))))
   bppar <- NULL
   if (ncores > 1){
     if (tolower(.Platform$OS.type) == "windows"){
@@ -336,7 +344,40 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
   }
 
 
-  # Model fitting ----
+  # RUVSeq ----
+  if (length(RUV) > 0){
+    if (!class(RUV) == "list") stop("Error: 'RUV' must be a named list.")
+    if ("n" %in% names(RUV)){
+      k <- RUV$n
+    } else {
+      k <- 1
+    }
+
+    if ("empirical" %in% names(RUV)){
+      ruv <- RUVSeq::RUVg(DESeq2::counts(dds, normalized = FALSE), RUV$empirical, k = k)
+
+    } else if ("group" %in% names(RUV)){
+      ruv <- RUVSeq::RUVs(DESeq2::counts(dds, normalized = FALSE), scIdx = RUVSeq::makeGroups(as.character(SummarizedExperiment::colData(dds)[[RUV$group]])), k = k)
+
+    } else {
+      stop("Error: Please provide either 'empirical' or 'group' to run RUVSeq!")
+    }
+
+    stopifnot(ncol(ruv$W) == k)
+    if (!is.null(rownames(ruv$W))) stopifnot(all.equal(rownames(ruv$W), colnames(dds)))
+    if (ncol(ruv$W) > 1){
+      colnames(ruv$W) <- paste0("RUV", 1:ncol(ruv$W))
+    } else {
+      colnames(ruv$W) <- "RUV"
+    }
+
+    design_ruv <- data.frame(SummarizedExperiment::colData(dds) |> as.data.frame(), ruv$W)
+    SummarizedExperiment::colData(dds) <- S4Vectors::DataFrame(design_ruv)
+    fruv <- as.formula(paste0("~ . + ", paste0(colnames(ruv$W), collapse = " + ")))
+    dds <- DESeq2::DESeqDataSet(dds, design = update.formula(old = formula, new = fruv))
+  }
+
+  # Explicit calculation of sizefactors ----
   if (!is.null(sizefactors)){
     dds$sizeFactor <- sizefactors
   } else if (!is.null(ctrlgenes)){
@@ -345,6 +386,46 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
     }
     dds <- DESeq2::estimateSizeFactors(dds, controlGenes = rownames(dds) %in% ctrlgenes)
   }
+
+
+  # SVA ----
+  if (length(SVA) > 0){
+    if (!class(SVA) == "list") stop("Error: 'SVA' must be a named list.")
+    if ("n" %in% names(SVA)){
+      n <- SVA$n
+    } else {
+      n <- NULL
+    }
+
+    if (is.null(dds$sizeFactor)){
+      dds <- DESeq2::estimateSizeFactors(dds)
+    }
+
+    if ("reduced" %in% names(SVA) & "formula" %in% class(SVA$reduced)){
+      mm_full <- model.matrix(dds@design, SummarizedExperiment::colData(dds))
+      mm_red <- model.matrix(SVA$reduced, SummarizedExperiment::colData(dds))
+      svafit <- sva::svaseq(DESeq2::counts(dds, normalized = TRUE), mod = mm_full, mod0 = mm_red)
+
+      if (svafit$n.sv > 0){
+        if (!is.null(rownames(svafit$sv))) stopifnot(all.equal(rownames(svafit$sv), colnames(dds)))
+        if (ncol(svafit$sv) > 1){
+          colnames(svafit$sv) <- paste0("SV", 1:ncol(svafit$sv))
+        } else {
+          colnames(svafit$sv) <- "SV"
+        }
+        design_sva <- data.frame(SummarizedExperiment::colData(dds) |> as.data.frame(), svafit$sv)
+        SummarizedExperiment::colData(dds) <- S4Vectors::DataFrame(design_sva)
+        fsva <- as.formula(paste0("~ . + ", paste0(colnames(svafit$sv), collapse = " + ")))
+        dds <- DESeq2::DESeqDataSet(dds, design = update.formula(old = formula, new = fsva))
+      }
+
+    } else {
+      stop("Error: Please provide a reduced model formula to run SVA!")
+    }
+
+  }
+
+  # Model fitting ----
   dds <- DESeq2::DESeq(dds, parallel = (ncores > 1), BPPARAM = bppar, ...)
 
 
