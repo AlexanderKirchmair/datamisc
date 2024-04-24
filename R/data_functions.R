@@ -550,7 +550,13 @@ matScale <- function(data, rows = FALSE, cols = FALSE, FUN = scale, ...){
   data <- data[,ix, drop = FALSE]
   names.org <- dimnames(data)
 
-  if (rows == TRUE & cols == TRUE) stop("Error: Do not scale rows and columns at once!")
+  if (rows == TRUE & cols == TRUE){
+    d <- dim(data)
+    v <- as.vector(data)
+    s <- as.numeric(FUN(v, ...))
+    data <- matrix(s, nrow = d[1], ncol = d[2])
+    dimnames(data) <- names.org
+  }
 
   if (rows == TRUE){
     data <- t(apply(data, 1, function(tmp) as.numeric(FUN(tmp, ...))))

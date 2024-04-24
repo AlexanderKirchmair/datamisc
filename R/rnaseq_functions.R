@@ -258,9 +258,9 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
   datamisc::colorcat("DESeq2 differential expression analysis", col = "blue")
   datamisc::colorcat("Use 'prefilter' to filter genes before normalization.", col = "blue")
   datamisc::colorcat("Use 'ctrlgenes' for normalization.", col = "blue")
+  datamisc::colorcat("Use 'RUV' or 'SVA' for batch effect correction.", col = "blue")
   datamisc::colorcat("Use 'sizefactors' to directly pass normalization factors.", col = "blue")
-  datamisc::colorcat("Use 'postfilter' to filter genes before normalization.", col = "blue")
-
+  datamisc::colorcat("Use 'postfilter' to filter genes after normalization.", col = "blue")
 
   stopifnot(requireNamespace("DESeq2", quietly = TRUE))
   stopifnot(requireNamespace("SummarizedExperiment", quietly = TRUE))

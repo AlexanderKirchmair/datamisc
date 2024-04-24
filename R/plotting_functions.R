@@ -270,6 +270,40 @@ ggpng <- function(gg, file, width = 3000, height = 2500, dpi = 300, units = "px"
 
 
 
+ggtopfeatures <- function(data, rel = FALSE, topn = 10, col.high = "#e63c3c", col.low = "#f0c3bb", col.other = "#dbdbdb", fontsize = 18, label.cex = 0.6, label.rot = 0, x.rot = 90, width = 0.9, ...){
+
+  if (rel == TRUE){
+    data <- t(t(data) / colSums(data, na.rm = TRUE))
+  }
+
+  df <- data |> rownames2col() |> tidyr::pivot_longer(cols = -id, names_to = "sample", values_to = "expr")
+  df <- df |> dplyr::group_by(sample) |> mutate(rank = rank(1/expr))
+
+  df$rank_factor <- as.character(df$rank)
+  df$rank_factor[df$rank > topn] <- "other"
+  df$rank_factor <- factor(df$rank_factor, levels = c(as.character(sort(unique(df$rank))), "other"))
+
+
+  df_sum <- df |> dplyr::group_by(sample, rank_factor) |> summarise(id = paste0(id, collapse = ";"), expr = sum(expr, na.rm = TRUE))
+  df_sum$id[df_sum$rank_factor == "other"] <- ""
+
+  cols <- c(colorRampPalette(c(col.high, col.low))(topn), col.other)
+  if (abs(x.rot) > 20){
+    x.txt <- ggplot2::element_text(angle = x.rot, hjust = 1, vjust = 0.5)
+  } else {
+    x.txt <- ggplot2::element_text(angle = x.rot)
+  }
+
+  ggplot2::ggplot(df_sum, ggplot2::aes(sample, expr, fill = rank_factor, label = id)) +
+    theme_basic(fontsize = fontsize) +
+    ggplot2::theme(legend.position = "none", axis.text.x = x.txt) +
+    ggplot2::geom_bar(position = "stack", stat = "identity", width = width) +
+    ggplot2::geom_text(position = position_stack(vjust = 0.5), size = fontsize*label.cex/ggplot2:::.pt, angle = label.rot) +
+    ggplot2::scale_fill_manual(values = cols) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0)))
+
+}
+
 
 
 
@@ -1002,9 +1036,59 @@ ggseabar <- function(results, x = NULL, y = NULL, label = NULL, sort_by = NULL, 
 
 
 
+#' Barplot of the top features of an expression matrix
+#'
+#' @param data
+#' @param rel
+#' @param topn
+#' @param col.high
+#' @param col.low
+#' @param col.other
+#' @param fontsize
+#' @param label.cex
+#' @param label.rot
+#' @param x.rot
+#' @param width
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' rmat(nrow = 100) |> ggtopfeatures()
+ggtopfeatures <- function(data, rel = FALSE, topn = 10, col.high = "#e63c3c", col.low = "#f0c3bb", col.other = "#dbdbdb", fontsize = 18, label.cex = 0.6, label.rot = 0, x.rot = 90, width = 0.9, ...){
+
+  if (rel == TRUE){
+    data <- t(t(data) / colSums(data, na.rm = TRUE))
+  }
+
+  df <- data |> rownames2col() |> tidyr::pivot_longer(cols = -id, names_to = "sample", values_to = "expr")
+  df <- df |> dplyr::group_by(sample) |> dplyr::mutate(rank = rank(1/expr))
+
+  df$rank_factor <- as.character(df$rank)
+  df$rank_factor[df$rank > topn] <- "other"
+  df$rank_factor <- factor(df$rank_factor, levels = c(as.character(sort(unique(df$rank))), "other"))
 
 
+  df_sum <- df |> dplyr::group_by(sample, rank_factor) |> dplyr::summarise(id = paste0(id, collapse = ";"), expr = sum(expr, na.rm = TRUE))
+  df_sum$id[df_sum$rank_factor == "other"] <- ""
 
+  cols <- c(colorRampPalette(c(col.high, col.low))(topn), col.other)
+  if (abs(x.rot) > 20){
+    x.txt <- ggplot2::element_text(angle = x.rot, hjust = 1, vjust = 0.5)
+  } else {
+    x.txt <- ggplot2::element_text(angle = x.rot)
+  }
+
+  ggplot2::ggplot(df_sum, ggplot2::aes(sample, expr, fill = rank_factor, label = id)) +
+    theme_basic(fontsize = fontsize) +
+    ggplot2::theme(legend.position = "none", axis.text.x = x.txt) +
+    ggplot2::geom_bar(position = "stack", stat = "identity", width = width) +
+    ggplot2::geom_text(position = ggplot2::position_stack(vjust = 0.5), size = fontsize*label.cex/ggplot2:::.pt, angle = label.rot) +
+    ggplot2::scale_fill_manual(values = cols) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0)))
+
+}
 
 
 
