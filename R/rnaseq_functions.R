@@ -335,12 +335,18 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
 
   # Pre-filtering ----
-  if (is.null(prefilter)){
+  if (!is.null(prefilter)){
+    if (length(prefilter) == nrow(dds) & is.logical(postfilter)){
+      dds <- dds[naf(prefilter),]
+    } else if (is.character(postfilter)){
+      dds <- dds[intersect(postfilter, rownames(dds)),]
+    } else {
+      stop("Index for pre-filtering is of wrong length/format!")
+      }
+  }
+
+  if (!is.null(min_counts) & !is.null(min_samples)){
     dds <- dds[rowSums(DESeq2::counts(dds) > min_counts, na.rm = TRUE) >= min_samples,]
-  } else if (length(prefilter) == nrow(dds)){
-    dds <- dds[naf(prefilter),]
-  } else {
-    stop("Index for filtering is of wrong length/format!")
   }
 
 
