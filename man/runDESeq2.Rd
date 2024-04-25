@@ -26,6 +26,8 @@ runDESeq2(
   ihw = TRUE,
   vst = FALSE,
   rlog = FALSE,
+  minReplicatesForReplace = 7,
+  fitType = "parametric",
   ...
 )
 }
@@ -71,6 +73,10 @@ runDESeq2(
 \item{vst}{Add vst-transformed assay}
 
 \item{rlog}{Add rlog-transformed assay}
+
+\item{minReplicatesForReplace}{Required number of replicates to replace outliers}
+
+\item{fitType}{Fit type of dispresion estimate (parametric, local, mean or glmGamPoi)}
 
 \item{...}{Parameters passed to DESeq}
 }

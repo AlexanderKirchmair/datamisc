@@ -238,6 +238,8 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param ihw Use independent hypothesis weighting
 #' @param vst Add vst-transformed assay
 #' @param rlog Add rlog-transformed assay
+#' @param minReplicatesForReplace Required number of replicates to replace outliers
+#' @param fitType Fit type of dispresion estimate (parametric, local, mean or glmGamPoi)
 #' @param ... Parameters passed to DESeq
 #'
 #' @return
@@ -255,14 +257,17 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
                       ctrlgenes = NULL, sizefactors = NULL,
                       RUV = list(), SVA = list(),
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
-                      shrink = TRUE, ihw = TRUE, vst = FALSE, rlog = FALSE, ...){
+                      shrink = TRUE, ihw = TRUE, vst = FALSE, rlog = FALSE,
+                      minReplicatesForReplace = 7, fitType = "parametric", ...){
 
   datamisc::colorcat("DESeq2 differential expression analysis", col = "blue")
-  datamisc::colorcat("Use 'prefilter' to filter genes before normalization.", col = "blue")
-  datamisc::colorcat("Use 'ctrlgenes' for normalization.", col = "blue")
-  datamisc::colorcat("Use 'RUV' or 'SVA' for batch effect correction.", col = "blue")
-  datamisc::colorcat("Use 'sizefactors' to directly pass normalization factors.", col = "blue")
-  datamisc::colorcat("Use 'postfilter' to filter genes after normalization.", col = "blue")
+  datamisc::colorcat("-use 'prefilter' to filter genes before normalization", col = "blue")
+  datamisc::colorcat("-use 'ctrlgenes' for normalization to control genes", col = "blue")
+  datamisc::colorcat("-use 'RUV' or 'SVA' for batch effect correction", col = "blue")
+  datamisc::colorcat("-use 'sizefactors' to directly pass normalization factors", col = "blue")
+  datamisc::colorcat("-use 'postfilter' to filter genes after normalization", col = "blue")
+  datamisc::colorcat("-use 'plotDispEsts(dds)' to check dispersion estimates", col = "blue")
+
 
   stopifnot(requireNamespace("DESeq2", quietly = TRUE))
   stopifnot(requireNamespace("SummarizedExperiment", quietly = TRUE))
@@ -434,7 +439,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
   }
 
   # Model fitting ----
-  dds <- DESeq2::DESeq(dds, parallel = (ncores > 1), BPPARAM = bppar, ...)
+  dds <- DESeq2::DESeq(dds, fitType = fitType, minReplicatesForReplace = minReplicatesForReplace, parallel = (ncores > 1), BPPARAM = bppar, ...)
 
 
   # Post-filtering ----
@@ -482,7 +487,9 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
   }
 
   if (!is.null(lrt_reduced)){
-    dds_rt <- DESeq2::DESeq(dds, test = "LRT", reduced = lrt_reduced, parallel = (ncores > 1), BPPARAM = bppar, ...)
+    dds_rt <- DESeq2::DESeq(dds, test = "LRT", reduced = lrt_reduced,
+                            fitType = fitType, minReplicatesForReplace = minReplicatesForReplace,
+                            parallel = (ncores > 1), BPPARAM = bppar, ...)
     lrt <- DESeq2::results(dds)
     lrt$log2FoldChange <- NULL
     lrt$lfcSE <- NULL
