@@ -336,10 +336,10 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
   # Pre-filtering ----
   if (!is.null(prefilter)){
-    if (length(prefilter) == nrow(dds) & is.logical(postfilter)){
+    if (length(prefilter) == nrow(dds) & is.logical(prefilter)){
       dds <- dds[naf(prefilter),]
-    } else if (is.character(postfilter)){
-      dds <- dds[intersect(postfilter, rownames(dds)),]
+    } else if (is.character(prefilter)){
+      dds <- dds[intersect(prefilter, rownames(dds)),]
     } else {
       stop("Index for pre-filtering is of wrong length/format!")
       }
