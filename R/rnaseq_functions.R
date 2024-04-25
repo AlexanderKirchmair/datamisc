@@ -221,6 +221,7 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param design Experimental design/colData
 #' @param formula Formula
 #' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
+#' @param lrt_reduced Reduced formula for LRT test
 #' @param prefilter Filter before normalization
 #' @param postfilter Filter after normalization
 #' @param min_counts min_counts in min_samples for filtering
@@ -245,10 +246,11 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @examples
 #' dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
 #' dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+#' dds |> runDESeq2(formula = ~ condition, lrt_reduced = ~ 1)
 #' dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")), vst = TRUE, ncores = 5)
 #' dds |> runDESeq2(formula = ~ condition, RUV = list(empirical = sample(rownames(dds), 10)), contrasts = list(BvsA = c("condition", "B", "A")))
 #' dds |> runDESeq2(formula = ~ condition, SVA = list(reduced = ~ 1), contrasts = list(BvsA = c("condition", "B", "A")))
-runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
+runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_reduced = NULL,
                       prefilter = NULL, postfilter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
                       RUV = list(), SVA = list(),
@@ -479,6 +481,17 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL,
 
   }
 
+  if (!is.null(lrt_reduced)){
+    dds_rt <- DESeq2::DESeq(dds, test = "LRT", reduced = lrt_reduced, parallel = (ncores > 1), BPPARAM = bppar, ...)
+    lrt <- DESeq2::results(dds)
+    lrt$log2FoldChange <- NULL
+    lrt$lfcSE <- NULL
+    lrt$gene <- rownames(lrt)
+    lrt <- as.data.frame(lrt)
+    lrt <- dplyr::relocate(.data = lrt, gene)
+    if (ordered == TRUE) lrt <- dplyr::arrange(lrt, pvalue)
+    results$LRT <- lrt
+  }
 
   # Results ----
   results$dds <- dds
