@@ -484,6 +484,21 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
       mle
     })
 
+
+    # Make dataframes
+    select_res <- function(contr, res, what){
+      df <- res$results[[contr]]
+      df$contrast <- contr
+      df |> dplyr::select(gene, !!what, contrast)
+    }
+
+    results$log2FC <- lapply(names(contrasts), select_res, res = results, what = "log2FC") |> Reduce(f = rbind) |>
+      tidyr::pivot_wider(names_from = "contrast", values_from = "log2FC") |> as.data.frame() |> col2rownames(gene)
+    results$log2FC <-  results$log2FC[rownames(results$normcounts),, drop = FALSE]
+
+    results$padj <- lapply(names(contrasts), select_res, res = results, what = "padj") |> Reduce(f = rbind) |>
+      tidyr::pivot_wider(names_from = "contrast", values_from = "padj") |> as.data.frame() |> col2rownames(gene)
+    results$padj <-  results$padj[rownames(results$normcounts),, drop = FALSE]
   }
 
   if (!is.null(lrt_reduced)){
