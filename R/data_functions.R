@@ -556,13 +556,11 @@ matScale <- function(data, rows = FALSE, cols = FALSE, FUN = scale, ...){
     s <- as.numeric(FUN(v, ...))
     data <- matrix(s, nrow = d[1], ncol = d[2])
     dimnames(data) <- names.org
-  }
 
-  if (rows == TRUE){
+  } else if (rows == TRUE){
     data <- t(apply(data, 1, function(tmp) as.numeric(FUN(tmp, ...))))
-  }
 
-  if (cols == TRUE){
+  } else if (cols == TRUE){
     data <- apply(data, 2, function(tmp) as.numeric(FUN(tmp, ...)))
   }
 
