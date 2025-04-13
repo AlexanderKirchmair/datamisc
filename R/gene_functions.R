@@ -124,7 +124,7 @@ getMSigDB <- function(collections = c("H", "C2|CP:KEGG"), species = "human", id_
       categ <- as.character(df[i,1])
       subcateg <- df[i,2]
       if (is.na(subcateg)) subcateg <- NULL
-      msigdbr::msigdbr(species = species, category = categ, subcategory = subcateg)
+      msigdbr::msigdbr(species = species, collection = categ, subcollection = subcateg)
     })
 
     genesets <- Reduce(x = gslist, f = rbind)

@@ -90,6 +90,9 @@ use_package("tibble", type = "Suggests")
 use_package("tidyr", type = "Suggests")
 use_package("yaml", type = "Suggests")
 
+use_package("Seurat", type = "Suggests")
+use_package("SeuratData", type = "Suggests")
+
 ```
 
     
@@ -100,7 +103,7 @@ use_r("meta_functions.R")
 use_r("plotting_functions")
 use_r("gene_functions.R")
 use_r("imports.R")
-
+use_r("scrnaseq_functions.R")
 
 ```
 
@@ -153,7 +156,6 @@ Install the package
 install()
 
 ```
-
 
 
 

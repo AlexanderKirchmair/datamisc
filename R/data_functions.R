@@ -132,6 +132,26 @@ size <- function(x, units = NULL){
 }
 
 
+
+#' Download file from url
+#'
+#' @param file
+#' @param url
+#' @param overwrite
+#' @param method
+#'
+#' @return
+#' @export
+#'
+#' @examples
+download <- function(file, url, overwrite=FALSE, method = "wget", ...){
+  if (!file.exists(file) | overwrite == TRUE){
+    download.file(url = url, destfile = file, method = method, ...)
+  }
+}
+
+
+
 #' Get class of a quoted object
 #'
 #' @param x
@@ -729,10 +749,25 @@ rjoin <- function(...){
 
 
 
-
-
-
-
+#' Add new levels to a factor
+#'
+#' @param factor
+#' @param ix
+#' @param level
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+add_level <- function(factor, ix, level, ...){
+  factor <- forcats::fct_expand(factor, level)
+  if (is.function(ix)){
+    ix <- ix(factor, ...)
+  }
+  factor[ix] <- level
+  factor
+}
 
 
 

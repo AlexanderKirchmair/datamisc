@@ -830,10 +830,15 @@ runfGSEA <- function(data, genesets, rank_by = c(stat, baseMean, svalue), type =
 
 #' Single-sample gene set enrichment with GSVA
 #'
-#' @param data
-#' @param genesets
+#' @param data Expression data
+#' @param genesets Genesets
 #' @param method
 #' @param kcdf
+#' @param min_size
+#' @param max_size
+#' @param assay
+#' @param annotation
+#' @param params
 #' @param ncores
 #' @param ...
 #'
@@ -841,7 +846,11 @@ runfGSEA <- function(data, genesets, rank_by = c(stat, baseMean, svalue), type =
 #' @export
 #'
 #' @examples
-runGSVA <- function(data, genesets = NULL, method = "gsva", kcdf = "Gaussian", ncores = 1, ...){
+#' data <- getTestData()$data
+#' genesets = getMSigDB("H")
+#' rownames(data) <- sample(unique(unlist(genesets)), nrow(data))
+#' runGSVA(data, genesets)
+runGSVA <- function(data, genesets, method = "gsva", kcdf = "Gaussian", min_size = 1, max_size = Inf, assay = NA_character_, annotation = NULL, params = NULL, ncores = 1, ...){
 
   stopifnot(requireNamespace("GSVA"))
 
@@ -850,20 +859,26 @@ runGSVA <- function(data, genesets = NULL, method = "gsva", kcdf = "Gaussian", n
   }
 
   ncores <- min(ncores, parallel::detectCores())
-  data <- data.matrix(data)
 
-  results <- GSVA::gsva(data,
-                        genesets,
-                        method = method,
-                        kcdf = kcdf,
-                        parallel.sz = ncores,
-                        ...)
+  # method params
+  method <- tolower(method)
+  if (method == "gsva" & is.null(params)){
+    params <- GSVA::gsvaParam(exprData = data, geneSets = genesets, minSize = min_size, maxSize = max_size, assay = assay, annotation = annotation, kcdf = kcdf)
+  }
+  if (method == "ssgsea" & is.null(params)){
+    params <- GSVA::ssgseaParam(exprData = data, geneSets = genesets, minSize = min_size, maxSize = max_size, assay = assay, annotation = annotation)
+  }
+  if (method == "plage" & is.null(params)){
+    params <- GSVA::plageParam(exprData = data, geneSets = genesets, minSize = min_size, maxSize = max_size, assay = assay, annotation = annotation)
+  }
+  if (method == "zscore" & is.null(params)){
+    params <- GSVA::zscoreParam(exprData = data, geneSets = genesets, minSize = min_size, maxSize = max_size, assay = assay, annotation = annotation)
+  }
 
-  results <- data.frame(results)
-  results
+  # run method
+  res <- GSVA::gsva(param = params, ...)
+  as.data.frame(res)
 }
-
-
 
 
 

@@ -80,6 +80,7 @@ ggbar <- function(data, aes = NULL, colors = NULL, x.cex = 1, rot = NULL, ...){
 #' @export
 #'
 #' @examples
+#' rdataframe() |> ggdesign()
 ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend = NULL, fontsize = 15, nacol = "grey70", ...){
 
   cols <- rlang::enquo(columns)
@@ -97,7 +98,7 @@ ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend
   df$Factor <- factor(df$Factor, ordered = TRUE, levels = colnames(design))
   df$Sample <- factor(df$Sample, ordered = TRUE, levels = rev(rownames(design)))
 
-  gg <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(x = Factor, y = Sample, fill = value, label = value, ...)) +
+  gg <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(x = Factor, y = Sample, fill = value, label = value)) +
     ggplot2::theme_bw() +
     ggplot2::theme(panel.border = ggplot2::element_blank(),
           axis.line = ggplot2::element_blank(),
@@ -121,8 +122,56 @@ ggdesign <- function(design, columns = NULL, colors = NULL, label = NULL, legend
 
 
 
+#' Intercalate one vector with another
+#'
+#' @param x vector 1
+#' @param y vector/value 2
+#' @param end add value at the end
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' intercalate(1:5, 0)
+intercalate <- function(x, y, end = TRUE){
+  v <- rep(x, each = 2)
+  v[c(FALSE, TRUE)] <- y
+  if (!is.null(names(y))){
+    names(v)[c(FALSE, TRUE)] <- names(y)
+  } else {
+    v <- unname(v)
+  }
+  if (end != TRUE){
+    v <- v[-length(v)]
+  }
+  v
+}
 
 
+
+
+
+ggdesign2 <- function(){
+
+  library(patchwork)
+
+  th <- theme(plot.margin = margin(0,0,0,0), panel.border = element_blank(), panel.spacing = unit(0, "mm"), axis.title.y = element_blank(), axis.text.y.left = element_blank(), axis.ticks = element_blank(),
+                    plot.background = element_blank(), panel.background = element_blank(), panel.grid = element_blank())
+
+  gg_cols <- lapply(setNames(colnames(design), colnames(design)), function(col){
+    gg <- dplyr::select(design, !!col, Sample) |>
+      ggplot2::ggplot(ggplot2::aes(x = !!col, y = Sample, fill = !!rlang::sym(col), label = Sample)) +
+      ggplot2::geom_tile(width = 2) + xlab("") +
+    gg + th
+  })
+
+  # wrap_plots(gg_cols, nrow = 1, guides = "collect")
+  # wrap_plots(gg_cols$O, plot_spacer(), gg_cols$J, nrow = 1, guides = "collect", widths = c(1,-0.2,1))
+  w <- intercalate(rep(1, length(gg_cols)), y = -0.1, end = FALSE)
+  gg <- intercalate(gg_cols, y = list(spacer = plot_spacer()), end = FALSE)
+  wrap_plots(gg, nrow = 1, guides = "collect", widths = w)
+
+}
 
 
 
