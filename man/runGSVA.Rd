@@ -6,16 +6,31 @@
 \usage{
 runGSVA(
   data,
-  genesets = NULL,
+  genesets,
   method = "gsva",
   kcdf = "Gaussian",
+  min_size = 1,
+  max_size = Inf,
+  assay = NA_character_,
+  annotation = NULL,
+  params = NULL,
   ncores = 1,
   ...
 )
 }
 \arguments{
+\item{data}{Expression data}
+
+\item{genesets}{Genesets}
+
 \item{...}{}
 }
 \description{
 Single-sample gene set enrichment with GSVA
+}
+\examples{
+data <- getTestData()$data
+genesets = getMSigDB("H")
+rownames(data) <- sample(unique(unlist(genesets)), nrow(data))
+runGSVA(data, genesets)
 }

@@ -536,10 +536,11 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
 #' @param data Data
 #' @param design Experimental design/colData
 #' @param formula Formula
-#' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel)
+#' @param contrasts Named list of contrasts, specified as c(factor, level, reflevel) or c(numeric)
 #' @param trend Trend
 #' @param robust Robust
 #' @param p.adj.method P.adj.method
+#' @param do_log Log-transform the data
 #' @param normalize Normalize
 #' @param norm.method Normalization method
 #' @param ...
@@ -548,19 +549,53 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
 #' @export
 #'
 #' @examples
-runLIMMA <- function(data, design, formula = ~ 1, contrasts = NULL, trend = TRUE, robust = FALSE, p.adj.method = "fdr", normalize = FALSE, norm.method = NULL, ...){
+#' data <- getTestData()
+#' runLIMMA(log2(data$data+1), design = data$design, formula = ~ group + cov1, contrasts = data$contrasts)
+#' runLIMMA(data$data, do_log = TRUE, design = data$design, formula = ~ group + cov1, contrasts = list(cov1 = "cov1"))
+runLIMMA <- function(data, design, formula = ~ 1, contrasts = NULL, trend = TRUE, robust = FALSE, p.adj.method = "fdr", do_log = FALSE, normalize = FALSE, norm.method = "vsn", ...){
 
   stopifnot(requireNamespace("limma", quietly = TRUE))
 
-  if (normalize == TRUE){
+  if (ncol(data) != nrow(design)){
+    stop("Error: The number of columns in data must match the number of rows in the design data frame.")
+  }
+
+  if (!is.null(colnames(data)) & !is.null(rownames(design))){
+    if (!all(colnames(data) == rownames(design))){
+      warning("Warning: Mismatch in 'colnames(data)' and 'rownames(design)'!")
+    }
+  }
+
+  datamisc::colorcat("Limma differential expression analysis", col = "blue")
+  datamisc::colorcat("-use 'do_log=TRUE' for log-transformation", col = "blue")
+  datamisc::colorcat("-use 'normalize=TRUE' for normalization and 'norm.method' to set the method", col = "blue")
+
+  if (do_log == TRUE){
+    data <- log2(data + 1)
+  }
+
+  if (normalize == TRUE & tolower(norm.method) != "vsn"){
+    if (do_log == TRUE){
+      stop("Error: Do not combine log-transformation and vsn!")
+    }
+    data <- limma::normalizeVSN(data)
+  } else if (normalize == TRUE){
     data <- limma::normalizeBetweenArrays(data, method = norm.method)
   }
 
-
   formula <- update(formula,  ~  0 + .)
   mm <- model.matrix(formula, design)
+  if (qr(mm)$rank < ncol(mm)){
+    warning("Model matrix is rank-deficient.")
+  }
 
-  contrasts_named <- lapply(contrasts, function(contr){  paste(c(paste0(contr[1], contr[2]), paste0(contr[1], contr[3])), collapse = " - ")})
+  contrasts_named <- lapply(contrasts, function(contr){
+    if (length(contr) == 1){
+      contr
+    } else {
+      paste(c(paste0(contr[1], contr[2]), paste0(contr[1], contr[3])), collapse = " - ")
+    }
+  })
   args <- c(contrasts_named, list(levels = mm))
   contrasts_limma <- do.call(what = limma::makeContrasts, args = args)
 
@@ -579,7 +614,7 @@ runLIMMA <- function(data, design, formula = ~ 1, contrasts = NULL, trend = TRUE
                                                          "padj" = tmpres$adj.P.Val) )
 
 
-  results
+  list(data = data, fit = efit, results = results)
 }
 
 

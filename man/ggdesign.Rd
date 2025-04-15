@@ -21,3 +21,6 @@ ggdesign(
 \description{
 Plot colData/experimental design matrix
 }
+\examples{
+rdataframe() |> ggdesign()
+}

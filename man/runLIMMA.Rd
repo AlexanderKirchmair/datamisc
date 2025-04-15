@@ -12,8 +12,9 @@ runLIMMA(
   trend = TRUE,
   robust = FALSE,
   p.adj.method = "fdr",
+  do_log = FALSE,
   normalize = FALSE,
-  norm.method = NULL,
+  norm.method = "vsn",
   ...
 )
 }
@@ -24,13 +25,15 @@ runLIMMA(
 
 \item{formula}{Formula}
 
-\item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel)}
+\item{contrasts}{Named list of contrasts, specified as c(factor, level, reflevel) or c(numeric)}
 
 \item{trend}{Trend}
 
 \item{robust}{Robust}
 
 \item{p.adj.method}{P.adj.method}
+
+\item{do_log}{Log-transform the data}
 
 \item{normalize}{Normalize}
 
@@ -40,4 +43,9 @@ runLIMMA(
 }
 \description{
 Differential expression analysis with LIMMA
+}
+\examples{
+data <- getTestData()
+runLIMMA(log2(data$data+1), design = data$design, formula = ~ group + cov1, contrasts = data$contrasts)
+runLIMMA(data$data, do_log = TRUE, design = data$design, formula = ~ group + cov1, contrasts = list(cov1 = "cov1"))
 }
