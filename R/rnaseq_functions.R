@@ -623,7 +623,48 @@ runLIMMA <- function(data, design, formula = ~ 1, contrasts = NULL, trend = TRUE
 
 
 
+#' Differential expression analysis with custom test
+#'
+#' @param data
+#' @param design
+#' @param contrasts
+#' @param FUN
+#' @param pull
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+runTEST <- function(data, design, contrasts = NULL, FUN = t.test, pull = c(p = "p.value", stat = "statistic"), ...){
 
+  res_na <- pull
+  res_na[] <- NA
+  results <- lapply(contrasts, function(contr){
+    if (length(contr) > 1){
+      contr_design <- design[design[[contr[1]]] %in% unlist(contr[-1]),,drop=FALSE]
+    }
+    contr_data <- data[,rownames(contr_design),drop=FALSE]
+    group <- contr_design[[contr[1]]]
+
+    contr_res <- apply(contr_data, 1, function(contr_data_row){
+      g <- unique(group)
+      x <- contr_data_row[naf(group == g[1])]
+      y <- contr_data_row[naf(group == g[2])]
+      if (length(unique(x[!is.na(x)])) >= 2 & length(unique(y[!is.na(y)])) >= 2){
+        res <- FUN(x, y, ...)
+        if (!is.null(pull)){
+          sapply(pull, function(p) as.numeric(res[[p]]) )
+        } else {
+          res
+        }
+      } else {
+        res_na
+      }
+    }) |> t() |> as.data.frame()
+  })
+
+}
 
 
 
@@ -711,7 +752,139 @@ collapse <- function(data, ids, select_by = NULL, average_by = NULL, decreasing 
 
 
 
+#' Expand (demultiplex) rows with multiple ids
+#'
+#' @param data Data.frame
+#' @param id_split List of ID vectors
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' x <- rmat()
+#' rownames(x) <- paste0(rownames(x), ";s", 1:3)
+#' expand(x, strsplit(rownames(x), split = ";"))
+expand <- function(data, id_split){
 
+  data <- as.data.frame(data)
+  n <- sapply(id_split, length)
+  data_expand <- data[n > 1,,drop=FALSE]
+  id_expand <- id_split[n > 1]
+
+  data_expand <- lapply(seq_along(id_expand), function(i){
+    df <- data_expand[rep(i, length(id_expand[[i]])),,drop=FALSE]
+    rownames(df) <- id_expand[[i]]
+    df
+  }) |> Reduce(f = dplyr::bind_rows)
+
+  data <- dplyr::bind_rows(data[n == 1,,drop=FALSE], data_expand)
+  if (!dplyr::setequal(rownames(data), unlist(id_split)) | any(duplicated(rownames(data)))){
+    stop("Error in IDs!")
+  }
+  data[unlist(id_split),]
+}
+
+
+
+
+
+
+
+#' Get feature ranking vector from differential abundance testing results
+#'
+#' @description
+#' Calculate ranking values to sort features from most upregulated to most downregulated for GSEA
+#'
+#' @param data
+#' @param rank_by
+#' @param rank_type
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' df <- data.frame(id = rgenes(n = 100), stat = rnorm(100), mean = runif(100))
+#' df[1:50,-1] <- df[51:100,-1] # make duplicates
+#' df |> get_feature_ranks(rank_by = c("stat", "mean"), rank_type = c("", ""), id_col="id")
+#'
+#' dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+#' res <- dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+#' res$results$BvsA |> get_feature_ranks(rank_by = c("pvalue", "baseMean"), rank_type = c("p", ""), direction_by = "log2FC")
+get_feature_ranks <- function(data, rank_by = "stat", rank_type = "", id_col = NULL, direction_by = NULL, ...){
+
+  datamisc::colorcat("Set 'rank_by' to define the main ranking statistic and secondary tie-breaking variables.", col = "blue")
+  datamisc::colorcat("Use rank_type = '' to use 'rank_by' as ranking statistic", col = "blue")
+  datamisc::colorcat("Use rank_type = 'p' to calculate the ranking statistic as -log10('rank_by') * sign('direction_by')", col = "blue")
+  datamisc::colorcat("Use rank_type = '+' to weight 'rank_by' by sign('direction_by')", col = "blue")
+
+  data <- as.data.frame(data)
+  stopifnot(length(rank_by) == length(rank_type))
+  keep <- unique(c(rank_by, id_col, direction_by))
+  if (!all(keep %in% colnames(data))){
+    warning(paste0("Column ", setdiff(keep, colnames(data)), " not found in data."))
+  }
+  keep <- keep[keep %in% colnames(data)]
+  df <- data[,keep,drop=FALSE]
+  df <- df[!is.na(df[[1]]),,drop=FALSE]
+
+  ## Transform values so that they can be sorted from highest to smallest
+
+  # check if negative values are present
+
+  for (i in seq_along(rank_by)){
+
+    # "+" - sort from highest to smallest, needs direction indicator
+    if (rank_type[i] == "+"){
+      if (any(df[[rank_by[i]]] < 0)){ stop(paste0("Error: Encountered negative values in column ", rank_by[i])) }
+      df[[rank_by[i]]] <- df[[rank_by[i]]] * sign(df[[direction_by]])
+
+    # "p" - sort from smallest to highest, needs direction indicator
+    } else if (rank_type[i] == "p"){
+      if (any(df[[rank_by[i]]] < 0)){ stop(paste0("Error: Encountered negative values in column ", rank_by[i])) }
+      df[[rank_by[i]]] <- -log10(pmax(df[[rank_by[i]]], .Machine$double.xmin)) * sign(df[[direction_by]])
+    }
+  }
+
+  if (!is.null(id_col)){
+    df[[id_col]] <- factor(df[[id_col]], levels = sort(unique(df[[id_col]]), decreasing = TRUE), ordered = TRUE)
+  }
+
+  df <- dplyr::arrange_all(df)
+  df <- df[rev(1:nrow(df)),,drop = FALSE]
+
+  ## Subranking
+  df$rankid <- as.character(df[[1]])
+  df$rankid[is.na(df$rankid)] <- "na"
+  df$dup <- df$rankid %in% df$rankid[duplicated(df$rankid)]
+  df$newstat <- df[[1]]
+  if (!is.null(id_col)){
+    df[[id_col]] <- as.character(df[[id_col]])
+  }
+
+  for (rankid in unique(subset(df, dup == TRUE)$rankid)){
+
+    tmp <- df[df$rankid == rankid,,drop = FALSE]
+    ix <- range(which(rankid == df$rankid))
+
+    tmp2 <- df[c(ix[1]-1, ix[2]+1),,drop = FALSE]
+    tmp2[is.na(tmp2)] <- mean(abs(diff(df[[1]])))
+    maxdiff <- min(abs(tmp2[[1]] - mean(tmp[[1]]))) * 0.4
+
+    tmpranks <- rev(1:nrow(tmp))
+    tmpranks <- (tmpranks - median(tmpranks)) / max(abs(tmpranks))
+
+    tmp$newstat <- tmp[[1]] + maxdiff * tmpranks
+    df[df$rankid == rankid,]$newstat <- tmp$newstat
+  }
+
+  if (is.null(id_col)){
+    ranks <- setNames(df$newstat, rownames(df))
+  } else {
+    ranks <- setNames(df$newstat, df[[id_col]])
+  }
+
+  ranks
+}
 
 
 
@@ -786,12 +959,11 @@ getRanks <- function(data, rank_by = 1, type = NULL){
 #' @export
 #'
 #' @examples
-runGSEA <- function(data, genesets = NULL, rank_by = c(stat, baseMean, svalue), type = c("", "+", "p"), as.df = TRUE, ...){
+#' data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runGSEA(genesets = getMSigDB(collections = "H"))
+runGSEA <- function(data, genesets = NULL, rank_by = "stat", rank_type = "", id_col = NULL, direction_by = NULL, min_size = 3, max_size = 2000, seed = 0, as.df = TRUE, ...){
 
   stopifnot(requireNamespace("clusterProfiler"))
   stopifnot(requireNamespace("fgsea"))
-
-  rank_by <- rlang::enquo(rank_by)
 
   if (is.null(genesets)){
     genesets <- NA
@@ -801,14 +973,13 @@ runGSEA <- function(data, genesets = NULL, rank_by = c(stat, baseMean, svalue), 
     genesets <- convertGeneSets(genesets, to = "data.frame")
   }
 
-  ranks <- getRanks(data, rank_by = !!rank_by, type = type)
-  ranks <- sort(ranks, decreasing = TRUE)
+  ranks <- get_feature_ranks(data, rank_by = rank_by, rank_type = rank_type, id_col = id_col, direction_by = direction_by)
 
   results <- clusterProfiler::GSEA(ranks,
-                                   seed = 123,
+                                   seed = seed,
                                    eps = 0,
-                                   minGSSize = 1,
-                                   maxGSSize = 2000,
+                                   minGSSize = min_size,
+                                   maxGSSize = max_size,
                                    TERM2GENE = genesets,
                                    pvalueCutoff = 1,
                                    pAdjustMethod = "fdr",
@@ -817,11 +988,16 @@ runGSEA <- function(data, genesets = NULL, rank_by = c(stat, baseMean, svalue), 
   if (as.df == TRUE){
     results <- as.data.frame(results)
     results <- dplyr::select(results, -Description)
-    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalue, size = setSize)
+    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalue, gene_set_size = setSize)
+    results$n_enriched_genes <- strsplit(results$core_enrichment, split = "/", fixed = TRUE) |> sapply(FUN = length)
+    results <- dplyr::relocate(results, n_enriched_genes, .after = gene_set_size)
   }
 
   results
 }
+
+
+
 
 
 

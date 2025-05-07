@@ -50,7 +50,7 @@ writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
 Write dataframes to .xlsx file
 
 writeTables(mtcars, file = "example.xlsx")
-writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
+writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")et
 writeTables(mtcars, file = "example.xlsx", scale_styles = list(mpg = c("#ffffff", "#6200d0"), cyl = c("#ffffff" = 0, "#ffca0a" = 10)))
 writeTables(mtcars, file = "example.xlsx", condition_styles = list(mpg = c(fontColour = "#6200d0", rule = ">20")))
 writeTables(iris, file = "example.xlsx", highlight_styles = list(Species = list(fgFill = "#3be1ff", values = c("setosa", "virginica"))), rowNames = FALSE)

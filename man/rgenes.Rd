@@ -7,7 +7,8 @@
 rgenes(
   n = 20,
   keytype = "SYMBOL",
-  dbi = org.Hs.eg.db::org.Hs.eg.db,
+  db = org.Hs.eg.db::org.Hs.eg.db,
+  type = "protein-coding",
   replace = FALSE,
   prob = NULL,
   ...

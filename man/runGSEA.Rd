@@ -7,8 +7,13 @@
 runGSEA(
   data,
   genesets = NULL,
-  rank_by = c(stat, baseMean, svalue),
-  type = c("", "+", "p"),
+  rank_by = "stat",
+  rank_type = "",
+  id_col = NULL,
+  direction_by = NULL,
+  min_size = 3,
+  max_size = 2000,
+  seed = 0,
   as.df = TRUE,
   ...
 )
@@ -18,4 +23,7 @@ runGSEA(
 }
 \description{
 GSEA with clusterProfiler
+}
+\examples{
+data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runGSEA(genesets = getMSigDB(collections = "H"))
 }

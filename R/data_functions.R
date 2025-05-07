@@ -842,7 +842,7 @@ add_level <- function(factor, ix, level, ...){
 #' @seealso openxlsx::writeData
 #' @examples
 #' writeTables(mtcars, file = "example.xlsx")
-#' writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")
+#' writeTables(list(mtcars = mtcars, iris = iris), file = "example.xlsx")et
 #' writeTables(mtcars, file = "example.xlsx", scale_styles = list(mpg = c("#ffffff", "#6200d0"), cyl = c("#ffffff" = 0, "#ffca0a" = 10)))
 #' writeTables(mtcars, file = "example.xlsx", condition_styles = list(mpg = c(fontColour = "#6200d0", rule = ">20")))
 #' writeTables(iris, file = "example.xlsx", highlight_styles = list(Species = list(fgFill = "#3be1ff", values = c("setosa", "virginica"))), rowNames = FALSE)
@@ -1533,6 +1533,82 @@ intersection <- function(...){
 
 
 
+
+
+
+
+#' Calculate correlations between any types of variables
+#'
+#' @param x
+#' @param y
+#' @param method_numeric
+#' @param na.omit
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' correl(1:10, sample(1:10))
+#' correl(rep(LETTERS, 5), seq(rep(LETTERS, 5)))
+#' correl(rep(LETTERS, 10), sample(rep(LETTERS, 10)))
+correl <- function(x, y, method_numeric="spearman", na.omit=TRUE, ...){
+
+  stopifnot(length(x) == length(x))
+  if (is.logical(x)) x <- as.character(x)
+  if (is.logical(y)) y <- as.character(y)
+
+  if (na.omit == TRUE){
+    ix <- is.na(x) | is.na(y)
+    x <- x[!ix]
+    y <- y[!ix]
+  }
+  if (all(as.character(x) == as.character(y)) | length(unique(x)) == 1 | length(unique(y)) == 1){
+    return(data.frame("r"=1, "p"=NA, "type"=NA))
+  }
+
+  if ("ordered" %in% class(x) & "ordered" %in% class(y)){
+    cor_type <- "ordinal"
+  } else if (any(c("factor", "character") %in% class(x)) & any(c("factor", "character") %in% class(y))){
+    cor_type <- "nominal"
+  } else if ((any(c("numeric", "integer") %in% class(x)) & any(c("factor", "character") %in% class(y))) |
+             (any(c("numeric", "integer") %in% class(y)) & any(c("factor", "character") %in% class(x)))){
+    cor_type <- "nominal-numeric"
+  } else if (any(c("numeric", "integer") %in% class(x)) & any(c("numeric", "integer") %in% class(y))){
+    cor_type <- "numeric"
+  }
+
+  if (cor_type == "ordinal"){
+    # polychoric correlation
+    res <- polycor::polychor(x, y, std.err = TRUE, ...)
+    r <- res$rho
+    p <- 2 * (1 - pnorm(abs(r/sqrt(res$var))))
+  } else if (cor_type == "nominal"){
+    # chisquare
+    ctab <- table(data.frame(x,y))
+    p <- chisq.test(ctab, ...)$p.value
+    r <- lsr::cramersV(ctab) # note that cramersV can not be negative
+  } else if (cor_type == "nominal-numeric"){
+    # kruskal
+    if (!is.numeric(x)){
+      tmp <- x
+      x <- y
+      y <- tmp
+    }
+    p <- rstatix::kruskal_test(x ~ y, data = data.frame(x = x, y = y), ...)$p
+    r <- rstatix::kruskal_effsize(x ~ y, data = data.frame(x = x, y = y), ...)$effsize
+
+  } else if (cor_type == "numeric"){
+    # numeric
+    res = cor.test(x, y, method = method_numeric, ...)
+    p <- res$p.value
+    r <- res$estimate
+  } else {
+    stop("Error: Unknown variable type.")
+  }
+
+
+  data.frame("r"=r, "p"=p, "type"=cor_type)
+}
 
 
 

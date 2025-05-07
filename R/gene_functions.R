@@ -256,7 +256,6 @@ getGOgenes <- function(db = org.Hs.eg.db::org.Hs.eg.db, keytype = "SYMBOL", onto
 
 
 
-
 #' Convert gene sets between different formats
 #'
 #' @param genesets
@@ -337,11 +336,14 @@ convertGeneSets <- function(genesets, from = NULL, to = "list", term = term, gen
 #'
 #' @examples
 #' rgenes(100)
-rgenes <- function(n = 20, keytype = "SYMBOL", dbi = org.Hs.eg.db::org.Hs.eg.db, replace = FALSE, prob = NULL, ...){
-  AnnotationDbi::keys(dbi, keytype = keytype, ...) |> sample(size = n, replace = replace, prob = prob)
+rgenes <- function(n = 20, keytype = "SYMBOL", db = org.Hs.eg.db::org.Hs.eg.db, type = "protein-coding", replace = FALSE, prob = NULL, ...){
+  ids <- AnnotationDbi::keys(db, keytype = keytype, ...)
+  if (!is.null(type)){
+    id_types <- AnnotationDbi::mapIds(db, keys = ids, keytype = keytype, column = "GENETYPE")
+    ids <- ids[id_types %in% type]
+  }
+  sample(ids, size = n, replace = replace, prob = prob)
 }
-
-
 
 
 #' Read GMT files
