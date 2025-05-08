@@ -952,7 +952,7 @@ getRanks <- function(data, rank_by = 1, type = NULL){
 #' @param data
 #' @param genesets
 #' @param rank_by
-#' @param type
+#' @param rank_type
 #' @param ...
 #'
 #' @return
@@ -960,42 +960,38 @@ getRanks <- function(data, rank_by = 1, type = NULL){
 #'
 #' @examples
 #' data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runGSEA(genesets = getMSigDB(collections = "H"))
+#'
+#' dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+#' rownames(dds) <- rgenes(n = 10000)
+#' res <- dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+#' res$results$BvsA |> runfGSEA(genesets = getMSigDB(collections = "H"))
 runGSEA <- function(data, genesets = NULL, rank_by = "stat", rank_type = "", id_col = NULL, direction_by = NULL, min_size = 3, max_size = 2000, seed = 0, as.df = TRUE, ...){
 
   stopifnot(requireNamespace("clusterProfiler"))
   stopifnot(requireNamespace("fgsea"))
 
-  if (is.null(genesets)){
+  if (is.null(genesets)) {
     genesets <- NA
   }
-
-  if (!"data.frame" %in% class(genesets)){
-    genesets <- convertGeneSets(genesets, to = "data.frame")
+  if (!"data.frame" %in% class(genesets)) {
+    genesets <- datamisc::convertGeneSets(genesets, to = "data.frame")
   }
 
-  ranks <- get_feature_ranks(data, rank_by = rank_by, rank_type = rank_type, id_col = id_col, direction_by = direction_by)
+  ranks <- datamisc::get_feature_ranks(data, rank_by = rank_by, rank_type = rank_type, id_col = id_col, direction_by = direction_by)
 
-  results <- clusterProfiler::GSEA(ranks,
-                                   seed = seed,
-                                   eps = 0,
-                                   minGSSize = min_size,
-                                   maxGSSize = max_size,
-                                   TERM2GENE = genesets,
-                                   pvalueCutoff = 1,
-                                   pAdjustMethod = "fdr",
-                                   ...)
+  set.seed(seed)
+  results <- clusterProfiler::GSEA(ranks, seed = TRUE, eps = 0, minGSSize = min_size, maxGSSize = max_size, TERM2GENE = genesets, pvalueCutoff = 1, pAdjustMethod = "fdr", ...)
 
-  if (as.df == TRUE){
+  if (as.df == TRUE) {
     results <- as.data.frame(results)
     results <- dplyr::select(results, -Description)
-    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalue, gene_set_size = setSize)
-    results$n_enriched_genes <- strsplit(results$core_enrichment, split = "/", fixed = TRUE) |> sapply(FUN = length)
+    results <- dplyr::mutate(results, core_enrichment = gsub("/", ", ", core_enrichment))
+    results <- dplyr::rename(results, term = ID, ES = enrichmentScore, padj = p.adjust, qval = qvalue, gene_set_size = setSize, enriched_genes = core_enrichment)
+    results$n_enriched_genes <- sapply(strsplit(results$enriched_genes, split = ", ", fixed = TRUE), FUN = length)
     results <- dplyr::relocate(results, n_enriched_genes, .after = gene_set_size)
   }
-
   results
 }
-
 
 
 
@@ -1014,7 +1010,13 @@ runGSEA <- function(data, genesets = NULL, rank_by = "stat", rank_type = "", id_
 #' @export
 #'
 #' @examples
-runfGSEA <- function(data, genesets, rank_by = c(stat, baseMean, svalue), type = c("", "+", "p"), seed = 123){
+#' data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runfGSEA(genesets = getMSigDB(collections = "H"))
+#'
+#' dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+#' rownames(dds) <- rgenes(n = 10000)
+#' res <- dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+#' res$results$BvsA |> runfGSEA(genesets = getMSigDB(collections = "H"))
+runfGSEA <- function(data, genesets, rank_by = "stat", rank_type = "", id_col = NULL, direction_by = NULL, min_size = 3, max_size = 2000, seed = 123){
 
   stopifnot(requireNamespace("fgsea"))
 
@@ -1022,20 +1024,16 @@ runfGSEA <- function(data, genesets, rank_by = c(stat, baseMean, svalue), type =
     genesets <- convertGeneSets(genesets, to = "list")
   }
 
-  rank_by <- rlang::enquo(rank_by)
-
   data <- as.data.frame(data)
-  ranks <- getRanks(data = data, rank_by = !!rank_by, type = type)
+  ranks <- datamisc::get_feature_ranks(data, rank_by = rank_by, rank_type = rank_type, id_col = id_col, direction_by = direction_by)
 
   set.seed(seed)
-  results <- fgsea::fgsea(genesets, sort(ranks), eps = 0)
+  results <- fgsea::fgsea(genesets, sort(ranks), minSize = min_size, maxSize = max_size, eps = 0)
   results <- as.data.frame(results)
   results <- dplyr::rename(results, term = pathway)
   results <- dplyr::arrange(results, pval)
   results
 }
-
-
 
 
 
