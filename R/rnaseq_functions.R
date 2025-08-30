@@ -230,6 +230,8 @@ nf_summary <- function (nfdir, design = NULL, ignore = FALSE){
 #' @param sizefactors Pre-calculated size factors
 #' @param RUV RUV batch effect correction: 'list(empirical = *genes*, group = *column*, n = *n_vars*)'
 #' @param SVA SVA batch effect correction: 'list(reduced = *formula*, n = *n_vars*)'
+#' @param cooksCutoff Filtering based on Cook's distance (default = TRUE)
+#' @param independentFiltering Filtering based on expression level (default = TRUE)
 #' @param alpha Significance level (default = 0.05)
 #' @param ordered Order results (default = TRUE)
 #' @param df Return results as data.frame
@@ -256,6 +258,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
                       prefilter = NULL, postfilter = NULL, min_counts = 5, min_samples = 2,
                       ctrlgenes = NULL, sizefactors = NULL,
                       RUV = list(), SVA = list(),
+                      cooksCutoff = TRUE, independentFiltering = TRUE,
                       alpha = 0.05, ordered = TRUE, df = TRUE, ncores = NULL,
                       shrink = TRUE, ihw = TRUE, vst = FALSE, rlog = FALSE,
                       minReplicatesForReplace = 7, fitType = "parametric", ...){
@@ -410,7 +413,7 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
       n <- NULL
     }
 
-    if (is.null(dds$sizeFactor)){
+    if (is.null(DESeq2::sizeFactors(dds))){
       dds <- DESeq2::estimateSizeFactors(dds)
     }
 
@@ -463,9 +466,9 @@ runDESeq2 <- function(data, design = NULL, formula = ~ 1, contrasts = NULL, lrt_
     results$results <- lapply_fun(contrasts, BPPARAM = bppar, FUN = function(tmp){
 
       if (is.null(filterFun)){
-        mle <- DESeq2::results(dds, contrast = tmp, alpha = alpha)
+        mle <- DESeq2::results(dds, contrast = tmp, cooksCutoff = cooksCutoff, independentFiltering = independentFiltering, alpha = alpha)
       } else {
-        mle <- DESeq2::results(dds, filterFun = filterFun, contrast = tmp, alpha = alpha)
+        mle <- DESeq2::results(dds, filterFun = filterFun, contrast = tmp, cooksCutoff = cooksCutoff, independentFiltering = independentFiltering, alpha = alpha)
       }
 
 

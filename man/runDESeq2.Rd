@@ -18,6 +18,8 @@ runDESeq2(
   sizefactors = NULL,
   RUV = list(),
   SVA = list(),
+  cooksCutoff = TRUE,
+  independentFiltering = TRUE,
   alpha = 0.05,
   ordered = TRUE,
   df = TRUE,
@@ -57,6 +59,10 @@ runDESeq2(
 \item{RUV}{RUV batch effect correction: 'list(empirical = \emph{genes}, group = \emph{column}, n = \emph{n_vars})'}
 
 \item{SVA}{SVA batch effect correction: 'list(reduced = \emph{formula}, n = \emph{n_vars})'}
+
+\item{cooksCutoff}{Filtering based on Cook's distance (default = TRUE)}
+
+\item{independentFiltering}{Filtering based on expression level (default = TRUE)}
 
 \item{alpha}{Significance level (default = 0.05)}
 

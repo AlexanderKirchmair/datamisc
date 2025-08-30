@@ -7,8 +7,12 @@
 runfGSEA(
   data,
   genesets,
-  rank_by = c(stat, baseMean, svalue),
-  type = c("", "+", "p"),
+  rank_by = "stat",
+  rank_type = "",
+  id_col = NULL,
+  direction_by = NULL,
+  min_size = 3,
+  max_size = 2000,
   seed = 123
 )
 }
@@ -17,4 +21,12 @@ runfGSEA(
 }
 \description{
 GSEA with fGSEA
+}
+\examples{
+data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runfGSEA(genesets = getMSigDB(collections = "H"))
+
+dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+rownames(dds) <- rgenes(n = 10000)
+res <- dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+res$results$BvsA |> runfGSEA(genesets = getMSigDB(collections = "H"))
 }

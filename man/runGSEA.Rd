@@ -26,4 +26,9 @@ GSEA with clusterProfiler
 }
 \examples{
 data.frame(id = rgenes(n = 100), stat = rnorm(100)) |> col2rownames() |> runGSEA(genesets = getMSigDB(collections = "H"))
+
+dds <- DESeq2::makeExampleDESeqDataSet(n = 10000, interceptMean = c(2,5))
+rownames(dds) <- rgenes(n = 10000)
+res <- dds |> runDESeq2(formula = ~ condition, contrasts = list(BvsA = c("condition", "B", "A")))
+res$results$BvsA |> runfGSEA(genesets = getMSigDB(collections = "H"))
 }
