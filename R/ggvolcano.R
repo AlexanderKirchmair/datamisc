@@ -46,8 +46,9 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                       ptres = 0.05, clip = FALSE, symlim = TRUE, expand = c(0,0), nbreaks_x = 7, nbreaks_y = 7,
                       xlim = NULL, ylim = NULL,
                       color_up = "#eb9d0e", color_down = "#146bc7", color_nonsig = "#4d4d4d",
-                      title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL,
-                      lwd = 0.8, at_zero = FALSE, ...){
+                      label_up = "up", label_down = "down", label_nonsig = "not signif.", show_nonsig = TRUE, show_grid = TRUE,
+                      title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL, leg_key_size=3.5,
+                      lwd = 0.8, at_zero = FALSE, clip_frame = "off", ...){
 
   ### Function to plot volcano plots using ggplot.
 
@@ -73,11 +74,11 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$score <- abs(as.numeric(scale(data$xtmp, center = FALSE))) + abs(as.numeric(scale(data$ytmp, center = FALSE)))
   data$score[is.na(data$score)] <- 0
 
-  data$class <- "not signif."
-  data$class[data[[rlang::as_name(y)]] <= ptres & data$x > 0] <- "up"
-  data$class[data[[rlang::as_name(y)]] <= ptres & data$x < 0] <- "down"
+  data$class <- label_nonsig
+  data$class[data[[rlang::as_name(y)]] <= ptres & data$x > 0] <- label_up
+  data$class[data[[rlang::as_name(y)]] <= ptres & data$x < 0] <- label_down
 
-  data$score[data$class == "not signif."] <- data$score[data$class == "not signif."] * 0.001
+  data$score[data$class == label_nonsig] <- data$score[data$class == label_nonsig] * 0.001
 
   if (is.null(title_size)) title_size <- lab_size
   if (is.null(axis_size)) axis_size <- lab_size
@@ -108,33 +109,28 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   if (is.na(nlabels_left)) nlabels_left <- 0
   if (is.na(nlabels_right)) nlabels_right <- 0
 
-  data$do_label[data$x < 0][1:nlabels_left] <- TRUE
-  data$do_label[data$x > 0][1:nlabels_right] <- TRUE
+  data$do_label[which(data$x < 0)[1:nlabels_left]] <- TRUE
+  data$do_label[which(data$x > 0)[1:nlabels_right]] <- TRUE
   data$do_label[is.na(data$do_label)] <- FALSE
-
 
   if (sum(data$do_label) < nlabels){ data$do_label[!data$do_label][1:(nlabels-sum(data$do_label))] <- TRUE }
   data$label[!data$do_label] <- ""
   data$do_label[data$label == ""] <- FALSE
 
-  data$do_label[data$class == "not signif."] <- FALSE
+  data$do_label[data$class == label_nonsig] <- FALSE
 
   # COLORS
 
   color <- rlang::enquo(color)
-
-  if (rlang::quo_is_null(color)){
+  color_user_def <- rlang::quo_is_null(color)
+  if (color_user_def){
     color <- rlang::sym("class")
-    colorvals <-  c("up" = color_up, "down" = color_down, "not signif." = color_nonsig)
-  } else {
-    col_levels <- unique(data[[rlang::as_name(color)]])
-    colorvals <-  setNames(scales::muted(rainbow(length(col_levels))), col_levels)
   }
 
 
   # LIMITS
 
-  sigdata <- subset(data, class != "not signif.")
+  sigdata <- subset(data, class != label_nonsig)
   xylimits <- list(xlim = getLimits(sigdata$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(sigdata$ytmp, clip = clip, expand = expand[2], negative = FALSE))
   if (symlim == TRUE){ xylimits$xlim <- c("min" = -max(abs(xylimits$xlim)), "max" = max(abs(xylimits$xlim))) }
   data$xorg <- data$x
@@ -206,12 +202,17 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$y[ data$y > xylimits$ylim["max"] ] <- xylimits$ylim["max"]
 
 
-
   ### GGPLOT ###
 
   data <- data[order(data$score, decreasing = FALSE),]
 
   gg <- data %>% ggplot2::ggplot(ggplot2::aes(x = x, y = y, label = label, color = !!color, shape = !!shape, ...))
+
+  if (show_grid){
+    panel_grid <- ggplot2::element_line(size = lwd, color = rgb(0.9,0.9,0.9))
+  } else {
+    panel_grid <- ggplot2::element_blank()
+  }
 
   gg %<>% + ggplot2::theme_bw(base_size = 20)
   gg %<>% + ggplot2::theme(text = ggplot2::element_text(color = "black", size = lab_size),
@@ -220,15 +221,15 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                   legend.text = ggplot2::element_text(color = "black", size = leg_size),
                   legend.title = ggplot2::element_text(color = "black", size = leg_size),
                   panel.grid.minor = ggplot2::element_blank(),
-                  panel.grid.major = ggplot2::element_line(size = lwd, color = rgb(0.9,0.9,0.9)),
-                  panel.border = ggplot2::element_rect(colour = "black", fill = NA, size = lwd),
+                  panel.grid.major = panel_grid,
+                  panel.border = ggplot2::element_rect(colour = "black", fill = NA, size = ifelse(clip_frame == "on", lwd*2, lwd)),
                   strip.background = ggplot2::element_blank(),
                   strip.text = ggplot2::element_text(color = "black", size = title_size),
                   axis.ticks = ggplot2::element_line(color = "black", size = lwd),
                   axis.line = ggplot2::element_blank(),
                   plot.margin = ggplot2::unit(c(1,1,1,1), "cm"),
                   plot.title = ggplot2::element_text(size = title_size, hjust = 0.5, lineheight = 1.5),
-                  axis.title = ggplot2::element_text(size = axis_size, face = "bold"),
+                  axis.title = ggplot2::element_text(size = axis_size, face = "plain"),
                   axis.text = ggplot2::element_text(size = axis_size, color = "black"))
 
   if (!is.null(ptres)){ gg %<>% + ggplot2::geom_hline(yintercept = -log10(ptres), linetype = "dashed", color = rgb(0.3,0.3,0.3)) }
@@ -241,11 +242,18 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
     gg %<>% + ggplot2::scale_size_continuous(range = c(point_size/5, point_size*2), guide = "none")
   }
 
-
-
-  gg %<>% + ggplot2::scale_colour_manual(values = colorvals)
-  gg %<>% + ggplot2::labs(title = title, y = paste0("-log10 ", rlang::as_name(y)), x = rlang::as_name(x), size = "none")
-
+  if (color_user_def){
+    color_vals <-  setNames(c(color_up, color_down, color_nonsig), c(label_up, label_down, label_nonsig))
+    if (show_nonsig){
+      color_breaks <- c(label_up, label_nonsig, label_down)
+    } else {
+      color_breaks <- c(label_up, label_down)
+    }
+    gg %<>% + ggplot2::scale_colour_manual(values = color_vals, breaks = color_breaks)
+    gg %<>% + ggplot2::labs(title = title, y = paste0("-log10 ", rlang::as_name(y)), x = rlang::as_name(x), color = NULL)
+  } else {
+    gg %<>% + ggplot2::labs(title = title, y = paste0("-log10 ", rlang::as_name(y)), x = rlang::as_name(x))
+  }
 
   gg %<>% + ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0,0)),
                                limits = xylimits$xlim,
@@ -269,7 +277,8 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                             point.padding = 0.35, box.padding = box.padding, max.time = 30, max.iter = 10^6,
                             min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = 0.6)
 
-  gg %<>% + ggplot2::coord_cartesian(clip = "off")
+  gg %<>% + ggplot2::guides(size = "none", label = "none", color = ggplot2::guide_legend(override.aes = list(size = leg_key_size)))
+  gg %<>% + ggplot2::coord_cartesian(clip = clip_frame)
 
   return(gg)
 }
@@ -278,14 +287,14 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
 
 
-getLimits <- function(x, clip = TRUE, expand = 1, negative = TRUE){
+getLimits <- function(x, clip = TRUE, expand = 0.1, negative = TRUE){
 
   x <- x[!is.na(x)]
   x <- x + x*expand
 
   if (clip == TRUE){
     h <- hist(x, plot = FALSE, breaks = 30)
-    xd <- h$counts > 3
+    xd <- (h$counts > 3) | (rev(cumsum(rev(h$counts))) > 8)
     xmin <- h$breaks[which(xd)[1]]
     xmax <- rev(h$breaks)[which(rev(xd))[1]]
 
