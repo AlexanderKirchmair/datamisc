@@ -7,6 +7,7 @@
 getMSigDB(
   collections = c("H", "C2|CP:KEGG"),
   species = "human",
+  db_species = "HS",
   id_type = "gene_symbol",
   format = c("list", "dataframe", "GeneSetCollection"),
   ...

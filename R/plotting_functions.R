@@ -976,6 +976,75 @@ gseaplot <- function(gsearesults, n = 3){
 
 
 
+#' GSEA dotplot
+#'
+#' @param data
+#' @param x
+#' @param y
+#' @param color
+#' @param n
+#' @param title
+#' @param fontsize
+#' @param x_thres
+#' @param cex_labels
+#' @param lwd
+#' @param ...
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+ggseadot <- function(data, x = -log10(padj), y = term, color = NES, n = 30, title = NULL, fontsize = 16, x_thres = 0.05, cex_labels = 0.6, lwd = 0.4, ...){
+
+  x <- rlang::enquo(x)
+  y <- rlang::enquo(y)
+  color <- rlang::enquo(color)
+
+  data <- dplyr::arrange(data, desc(!!x), desc(abs(!!color)))
+  data <- dplyr::slice_head(data, n = n)
+  data[[rlang::as_name(y)]] <- factor(data[[rlang::as_name(y)]], levels = rev(data[[rlang::as_name(y)]]), ordered = TRUE)
+
+
+
+  gg <- ggplot(data, aes(x = !!x, y = term, color = !!color, ...)) + theme_bw(base_size = fontsize)
+
+  gg <- gg + geom_point()
+
+  gg <- gg + theme(rect = ggplot2::element_rect(color = "black", linewidth = lwd),
+                   line = ggplot2::element_line(linewidth = lwd, lineend = "square"),
+                   legend.text = ggplot2::element_text(color = "black", size = fontsize),
+                   legend.title = ggplot2::element_text(color = "black", size = fontsize),
+                   panel.grid.minor = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_line(linewidth = lwd, color = rgb(0.9, 0.9, 0.9)),
+                   panel.border = ggplot2::element_rect(colour = "black", fill = NA, size = lwd),
+                   strip.background = ggplot2::element_blank(),
+                   strip.text = ggplot2::element_text(color = "black", size = fontsize),
+                   axis.ticks = ggplot2::element_line(color = "black", linewidth = lwd * 1.3, lineend = "butt"),
+                   axis.line = ggplot2::element_blank(), plot.margin = ggplot2::unit(c(1, 1, 1, 1), "cm"),
+                   plot.title = ggplot2::element_text(size = fontsize, hjust = 0.5, lineheight = 1.5),
+                   axis.title = ggplot2::element_text(size = fontsize),
+                   axis.text = ggplot2::element_text(size = fontsize * cex_labels, color = "black"))
+
+  if (min(data[[rlang::as_name(color)]], na.rm = TRUE) < 0){
+    gg <- gg + scale_color_gradient2(low = "blue", mid = "grey95", high = "red", midpoint = 0, na.value = "grey30")
+  } else {
+    gg <- gg + scale_color_gradient(low = "grey95", high = "darkblue", na.value = "grey30")
+  }
+
+  gg <- gg + guides(color = guide_colorbar(order = 1, frame.colour = "black", ticks.colour = "black", frame.linewidth = 0.2))
+
+  gg <- gg + scale_x_continuous(limits = c(0, NA), expand = expansion(mult = c(0.1, 0.1)))
+  gg <- gg + ggplot2::labs(title = title, y = "")
+  gg <- gg + coord_cartesian(clip = "off")
+
+  if (!is.null(x_thres)){
+    gg <- gg + geom_vline(xintercept = -log10(x_thres), linewidth = lwd, linetype = "dashed", color = "grey30")
+  }
+
+  gg
+}
+
+
 
 
 
@@ -992,7 +1061,7 @@ gseaplot <- function(gsearesults, n = 3){
 #' @param top_n
 #' @param top_n_up
 #' @param top_n_down
-#' @param labsize
+#' @param fontsize
 #' @param reverse
 #' @param ...
 #'
@@ -1000,7 +1069,7 @@ gseaplot <- function(gsearesults, n = 3){
 #' @export
 #'
 #' @examples
-ggseabar <- function(results, x = NULL, y = NULL, label = NULL, sort_by = NULL, sort_abs = FALSE, top_by = NULL, top_n = 20, top_n_up = NULL, top_n_down = NULL, labsize = 12, reverse = FALSE, ...){
+ggseabar <- function(results, x = NULL, y = NULL, label = NULL, sort_by = NULL, sort_abs = FALSE, top_by = NULL, top_n = 20, top_n_up = NULL, top_n_down = NULL, nudge = 0.15, fontsize = 12, lwd=0.6, reverse = FALSE, ...){
 
   # Input
   results <- as.data.frame(results)
@@ -1057,24 +1126,41 @@ ggseabar <- function(results, x = NULL, y = NULL, label = NULL, sort_by = NULL, 
 
 
   gg <- ggplot2::ggplot(results, aes(x = !!x, y = !!y, label = !!label, ...)) + ggplot2::geom_bar(stat = "identity")
-  gg <- gg + ggplot2::geom_vline(xintercept = 0, color = "grey40")
+  gg <- gg + ggplot2::geom_vline(xintercept = 0, color = "grey80", linewidth = lwd)
 
   res_left <- subset(results, results[[rlang::as_name(x)]] < 0)
-  if (nrow(res_left) > 0) gg <- gg + ggplot2::geom_text(size = labsize/ggplot2::.pt, data = res_left, nudge_x = 0.25, hjust = 0)
+  if (nrow(res_left) > 0) gg <- gg + ggplot2::geom_text(size = fontsize/ggplot2::.pt, data = res_left, nudge_x = nudge, hjust = 0)
   res_right <- subset(results, results[[rlang::as_name(x)]] > 0)
-  if (nrow(res_right) > 0) gg <- gg + ggplot2::geom_text(size = labsize/ggplot2::.pt, data = res_right, nudge_x = -0.25, hjust = 1)
+  if (nrow(res_right) > 0) gg <- gg + ggplot2::geom_text(size = fontsize/ggplot2::.pt, data = res_right, nudge_x = -nudge, hjust = 1)
 
   lims <- ceiling(abs(range(results[[rlang::as_name(x)]])))
   gg <- gg + ggplot2::ylab("")
-  gg <- gg + ggplot2::theme(axis.text.y = ggplot2::element_blank(),
-                            panel.border = ggplot2::element_blank(),
-                            plot.background = ggplot2::element_blank(),
-                            axis.ticks.y = ggplot2::element_blank(),
-                            plot.title = ggplot2::element_text(hjust = 0.5))
+
+  gg <- gg + ggplot2::theme( rect = ggplot2::element_rect(color = "black", linewidth = lwd),
+                             line = ggplot2::element_line(color = "black", linewidth = lwd, lineend = "square"),
+                             axis.text.y = ggplot2::element_blank(),
+                             axis.ticks.y = ggplot2::element_blank(),
+                             legend.text = ggplot2::element_text(color = "black", size = fontsize),
+                             legend.title = ggplot2::element_text(color = "black", size = fontsize),
+                             panel.grid.minor.y = ggplot2::element_blank(),
+                             panel.grid.major.x = ggplot2::element_line(color = "grey80", linewidth = lwd),
+                             panel.border = ggplot2::element_blank(),
+                             panel.background = ggplot2::element_blank(),
+                             plot.background = ggplot2::element_blank(),
+                             strip.background = ggplot2::element_blank(),
+                             strip.text = ggplot2::element_text(color = "black", size = fontsize),
+                             axis.ticks = ggplot2::element_line(color = "black", linewidth = lwd, lineend = "butt"),
+                             axis.line.x = ggplot2::element_line(color = "black", linewidth = lwd),
+                             axis.line.y = ggplot2::element_blank(),
+                             plot.margin = ggplot2::unit(c(1, 1, 1, 1), "cm"),
+                             plot.title = ggplot2::element_text(size = fontsize, hjust = 0.5, lineheight = 1.5),
+                             axis.title = ggplot2::element_text(size = fontsize),
+                             axis.text.x = ggplot2::element_text(size = fontsize, color = "black"))
 
 
   gg <- gg + ggplot2::xlim(c(-max(abs(lims)), max(abs(lims))))
   gg <- gg + ggplot2::scale_fill_gradient2(low = "#0e7aed", mid = "white", high = "#db3b25", midpoint = 0, oob = scales::squish)
+  gg <- gg + guides(fill = guide_colorbar(order = 1, frame.colour = "black", ticks.colour = "black", frame.linewidth = lwd/2))
 
   gg
 }

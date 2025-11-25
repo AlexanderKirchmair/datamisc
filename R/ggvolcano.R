@@ -42,12 +42,13 @@
 #' @examples
 #' data.frame(row.names = LETTERS, lfc = runif(length(LETTERS), -3, 3), padj = runif(length(LETTERS))) |> ggvolcano()
 ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shape = NULL, stroke = NA,
-                      nlabels = NULL, lab_size = 12, labface = "plain", repel = 1.5, attract = NULL, box.padding = 0.5, max_overlaps = Inf, seed = 123,
+                      nlabels = NULL, fontsize = 16, labface = "plain", lab_size = 12, repel = 2, attract = NULL, box.padding = 0.5, max_overlaps = Inf, seed = 123,
                       ptres = 0.05, clip = FALSE, symlim = TRUE, expand = c(0,0), nbreaks_x = 7, nbreaks_y = 7,
                       xlim = NULL, ylim = NULL,
                       color_up = "#eb9d0e", color_down = "#146bc7", color_nonsig = "#4d4d4d",
-                      label_up = "up", label_down = "down", label_nonsig = "not signif.", show_nonsig = TRUE, show_grid = TRUE,
-                      title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL, leg_key_size=3.5,
+                      label_up = "up", label_down = "down", label_nonsig = "not signif.", autolabel = NULL, show_nonsig = TRUE,
+                      segment.alpha = 0.6, max.time = 30, max.iter = 10^6, show_grid = TRUE,
+                      title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL, leg_key_size=4,
                       lwd = 0.8, at_zero = FALSE, clip_frame = "off", ...){
 
   ### Function to plot volcano plots using ggplot.
@@ -74,15 +75,21 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$score <- abs(as.numeric(scale(data$xtmp, center = FALSE))) + abs(as.numeric(scale(data$ytmp, center = FALSE)))
   data$score[is.na(data$score)] <- 0
 
+  if (!is.null(autolabel)){
+    label_up <- sub("_vs_.*", "", autolabel)
+    label_down <- sub(".*_vs_", "", autolabel)
+  }
+
   data$class <- label_nonsig
   data$class[data[[rlang::as_name(y)]] <= ptres & data$x > 0] <- label_up
   data$class[data[[rlang::as_name(y)]] <= ptres & data$x < 0] <- label_down
 
   data$score[data$class == label_nonsig] <- data$score[data$class == label_nonsig] * 0.001
 
-  if (is.null(title_size)) title_size <- lab_size
-  if (is.null(axis_size)) axis_size <- lab_size
-  if (is.null(leg_size)) leg_size <- lab_size
+  if (is.null(title_size)) title_size <- fontsize
+  if (is.null(axis_size)) axis_size <- fontsize
+  if (is.null(leg_size)) leg_size <- fontsize
+  if (is.null(lab_size)) lab_size <- fontsize
 
 
   shape <- rlang::enquo(shape)
@@ -209,23 +216,25 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   gg <- data %>% ggplot2::ggplot(ggplot2::aes(x = x, y = y, label = label, color = !!color, shape = !!shape, ...))
 
   if (show_grid){
-    panel_grid <- ggplot2::element_line(size = lwd, color = rgb(0.9,0.9,0.9))
+    panel_grid <- ggplot2::element_line(linewidth = lwd, color = rgb(0.9,0.9,0.9))
   } else {
     panel_grid <- ggplot2::element_blank()
   }
 
   gg %<>% + ggplot2::theme_bw(base_size = 20)
-  gg %<>% + ggplot2::theme(text = ggplot2::element_text(color = "black", size = lab_size),
-                  rect = ggplot2::element_rect(color = "black", size = lwd),
-                  line = ggplot2::element_line(size = lwd),
+  gg %<>% + ggplot2::theme(text = ggplot2::element_text(color = "black", size = fontsize),
+                  rect = ggplot2::element_rect(color = "black", linewidth = lwd),
+                  line = ggplot2::element_line(linewidth = lwd),
                   legend.text = ggplot2::element_text(color = "black", size = leg_size),
                   legend.title = ggplot2::element_text(color = "black", size = leg_size),
+                  legend.key.spacing.x = ggplot2::unit(leg_size, "pt"),
+                  legend.key.spacing.y = ggplot2::unit(leg_size*0.6, "pt"),
                   panel.grid.minor = ggplot2::element_blank(),
                   panel.grid.major = panel_grid,
-                  panel.border = ggplot2::element_rect(colour = "black", fill = NA, size = ifelse(clip_frame == "on", lwd*2, lwd)),
+                  panel.border = ggplot2::element_rect(colour = "black", fill = NA, linewidth = ifelse(clip_frame == "on", lwd*2, lwd)),
                   strip.background = ggplot2::element_blank(),
                   strip.text = ggplot2::element_text(color = "black", size = title_size),
-                  axis.ticks = ggplot2::element_line(color = "black", size = lwd),
+                  axis.ticks = ggplot2::element_line(color = "black", linewidth = lwd),
                   axis.line = ggplot2::element_blank(),
                   plot.margin = ggplot2::unit(c(1,1,1,1), "cm"),
                   plot.title = ggplot2::element_text(size = title_size, hjust = 0.5, lineheight = 1.5),
@@ -272,10 +281,10 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                             size = lab_size/ggplot2:::.pt,
                             seed = seed,
                             xlim = xylimits$xlim - c(-diff(xylimits$xlim), diff(xylimits$xlim))*0.18,
-                            ylim = xylimits$ylim - c(-diff(xylimits$ylim)*0.3, diff(xylimits$ylim)*0.02),
+                            ylim = xylimits$ylim - c(-diff(xylimits$ylim)*0.15, diff(xylimits$ylim)*0.02),
                             force = repel, force_pull = attract,  max.overlaps = max_overlaps,
-                            point.padding = 0.35, box.padding = box.padding, max.time = 30, max.iter = 10^6,
-                            min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = 0.6)
+                            point.padding = 0.35, box.padding = box.padding, max.time = max.time, max.iter = max.iter,
+                            min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = segment.alpha)
 
   gg %<>% + ggplot2::guides(size = "none", label = "none", color = ggplot2::guide_legend(override.aes = list(size = leg_key_size)))
   gg %<>% + ggplot2::coord_cartesian(clip = clip_frame)

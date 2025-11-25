@@ -104,7 +104,7 @@ convertGeneSpecies <- function(genes, taxon = "10090", direction = "from", id_ty
 #' @export
 #'
 #' @examples getGeneSets(c("H", "C2|CP:KEGG|CP:REACTOME"))
-getMSigDB <- function(collections = c("H", "C2|CP:KEGG"), species = "human", id_type = "gene_symbol", format = c("list", "dataframe", "GeneSetCollection"), ...){
+getMSigDB <- function(collections = c("H", "C2|CP:KEGG"), species = "human", db_species = "HS", id_type = "gene_symbol", format = c("list", "dataframe", "GeneSetCollection"), ...){
 
   stopifnot(requireNamespace("msigdbr"))
   # msigdbr::msigdbr_species()
@@ -124,7 +124,7 @@ getMSigDB <- function(collections = c("H", "C2|CP:KEGG"), species = "human", id_
       categ <- as.character(df[i,1])
       subcateg <- df[i,2]
       if (is.na(subcateg)) subcateg <- NULL
-      msigdbr::msigdbr(species = species, collection = categ, subcollection = subcateg)
+      msigdbr::msigdbr(species = species, collection = categ, db_species = db_species, subcollection = subcateg)
     })
 
     genesets <- Reduce(x = gslist, f = rbind)

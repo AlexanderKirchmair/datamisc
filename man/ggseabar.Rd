@@ -15,7 +15,9 @@ ggseabar(
   top_n = 20,
   top_n_up = NULL,
   top_n_down = NULL,
-  labsize = 12,
+  nudge = 0.15,
+  fontsize = 12,
+  lwd = 0.6,
   reverse = FALSE,
   ...
 )
