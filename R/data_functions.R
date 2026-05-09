@@ -1446,7 +1446,7 @@ getGEOdata <- function(ID = "GSE222693", geodir = "~/myScratch/GEO", fetch_files
   }
 
   geo <- GEOquery::getGEO(ID, destdir = subdir, ...)
-  supp <- GEOquery::getGEOSuppFiles(ID, makeDirectory = FALSE, baseDir = subdir, fetch_files = fetch_files)
+  supp <- GEOquery::getGEOSuppFiles(ID, makeDirectory = FALSE, baseDir = file.path(subdir, "supp"), fetch_files = fetch_files)
 
   if (fetch_files == FALSE){
     suppfiles <- unname(supp["url"])
