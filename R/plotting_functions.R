@@ -1230,3 +1230,216 @@ ggtopfeatures <- function(data, rel = FALSE, topn = 10, col.high = "#e63c3c", co
 
 
 
+
+
+#' Boxplot with individual data points
+#'
+#' @param df
+#' @param x
+#' @param y
+#' @param colour
+#' @param ymax
+#' @param point_size
+#' @param fontsize
+#' @param linewidth
+#' @param width
+#' @param varwidth
+#' @param staplewidth
+#' @param y_at_zero
+#' @param ...
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' iris |> ggboxplot(Species, Sepal.Length, colour=Petal.Length)
+#' iris |> ggboxplot(Species, Sepal.Length, colour=Petal.Length) |> ggpairwise()
+ggboxplot <- function(df, x, y, colour="grey30", ymax=NULL, point_size=2.5, fontsize=16, linewidth=NULL, width=0.8, varwidth=FALSE, staplewidth=0.4, y_at_zero=TRUE, ...){
+
+  stopifnot(requireNamespace("ggbeeswarm"))
+
+  x <- rlang::enquo(x)
+  y <- rlang::enquo(y)
+  colour <- rlang::enquo(colour)
+
+  if (is.null(linewidth)){
+    linewidth <- fontsize/22
+  }
+
+  gg <- ggplot(df, aes(!!x, !!y, ...))
+  gg <- gg + theme(axis.text = element_text(colour = "black"))
+
+  # add points
+  if (!rlang::as_name(colour) %in% grDevices::colors()){
+    gg <- gg + ggbeeswarm::geom_quasirandom(aes(colour=!!colour), varwidth=varwidth, width=width*0.8/2, size=point_size, stroke=NA)
+  } else {
+    gg <- gg + ggbeeswarm::geom_quasirandom(varwidth=varwidth, width=width*0.8/2, size=point_size, stroke=NA, colour=rlang::as_name(colour))
+  }
+
+  # add boxes
+  gg <- gg + geom_boxplot(colour="black", linewidth=linewidth, median.linewidth=linewidth, varwidth=varwidth, width=width, fill=NA, outliers=FALSE, staplewidth=staplewidth)
+
+  # formatting
+  if (!is.null(ymax)){
+    if (startsWith(as.character(ymax), "q")){
+      q <- sub("q", "", ymax) |> as.numeric()
+      ymax <- quantile(df[[y]], q, na.rm = TRUE)
+    }
+    gg <- gg + scale_y_continuous(limits = c(ifelse(y_at_zero, 0, NA), ymax), expand = ggplot2::expansion(mult = c(0,0)), oob = scales::censor)
+  } else {
+    gg <- gg + scale_y_continuous(limits = c(ifelse(y_at_zero, 0, NA), NA), expand = ggplot2::expansion(mult = c(0,0.05)), oob = scales::censor)
+  }
+
+  gg + coord_cartesian(clip = "off")
+}
+
+
+
+#' Add pairwise comparisons to ggboxplot
+#'
+#' @param gg
+#' @param padj_thres
+#' @param fontsize
+#' @param max_add
+#' @param spacing
+#' @param label_offset
+#' @param linewidth
+#' @param linetype
+#' @param y_at_zero
+#' @param ymax
+#' @param na.omit
+#' @param test
+#' @param TESTFUN
+#' @param ...
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' iris |> ggboxplot(Species, Sepal.Length, colour=Petal.Length) |> ggpairwise()
+ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=NULL, label_offset=0.02, linewidth=NULL, linetype="solid", y_at_zero=TRUE, ymax=NULL, na.omit=FALSE, test=c("wilcox.test", "t.test"), TESTFUN=NULL, ...){
+  x <- gg$mapping[["x"]] |> rlang::as_name()
+  y <- gg$mapping[["y"]] |> rlang::as_name()
+
+  if (is.null(TESTFUN)){
+    test <- test[1]
+    if (test == "wilcox.test"){
+      TESTFUN = function(x, y, ...){ wilcox.test(x, y, ...)$p.value }
+    } else if (test == "t.test"){
+      TESTFUN = function(x, y, ...){ t.test(x, y, ...)$p.value }
+    } else {
+      stop("Error: No valid test provided!")
+    }
+  }
+
+  if (is.null(spacing)){
+    spacing <- fontsize/200
+  }
+  statdf <- get_pairwise_stats(gg$data, x, y, padj_thres = padj_thres, spacing = spacing, max_add = max_add, ymax=ymax, na.omit = na.omit, TESTFUN = TESTFUN, ...)
+
+  if (nrow(statdf) < 1) return(gg)
+
+  if (is.null(linewidth)){
+    linewidth <- sqrt(fontsize/ggplot2::.pt) / 4
+  }
+  ar <- grid::arrow(90, length = grid::unit(0.01,"npc"), ends = "both")
+
+  if (is.null(ymax)){
+    ymax <- max(statdf$y, na.rm = TRUE) * 1.1
+  }
+
+  if (!is.null(gg@scales$scales[[1]]$limits[1])){
+    ymin <- gg@scales$scales[[1]]$limits[1]
+  } else {
+    ymin <- min(gg$data[[y]], na.rm = TRUE)
+  }
+  ydist <- ymax - ymin
+
+  gg <- gg + geom_segment(statdf, mapping = aes_string(x = "x", xend = "xend", y = "y", yend = "y"),
+                          arrow = ar, linewidth = linewidth, lineend = "square", linetype = linetype, inherit.aes = FALSE)
+
+  gg <- gg + geom_text(data = statdf, mapping = aes(x = xmean, y = y, label = text), hjust = 0.5,
+                       nudge_y = ydist*label_offset, inherit.aes = FALSE, size = fontsize/ggplot2::.pt)
+
+  gg <- gg + scale_y_continuous(limits = c(ifelse(ymin == 0, 0, NA), ymax), expand = ggplot2::expansion(mult = c(0,0)), oob = scales::censor)
+  gg
+}
+
+
+get_all_comparisons <- function(df, x, y, as_list=FALSE, na.omit = FALSE){
+
+  groups <- unique(df[[x]]) |> as.character()
+  if (na.omit == TRUE){
+    groups <- groups[!is.na(groups)]
+  }
+  groups[is.na(groups)] <- "NA"
+  statdf <- expand.grid(groups, groups) |> apply(1, sort) |> t()
+  l <- statdf |> apply(1, unique) |> sapply(length)
+  statdf <- unique(statdf[l == 2,]) |> data.frame()
+  colnames(statdf) <- c("group1","group2")
+
+  if (as_list==TRUE){
+    statdf <- as.data.frame(t(statdf[,c(2,1)])) |> as.list()
+    names(statdf) <- sapply(statdf, paste, collapse="_vs_")
+  }
+
+  statdf
+}
+
+get_pairwise_stats <- function(df, x, y, padj_thres = 0.05, spacing = 0.05, ymax=NULL, max_add = NULL, na.omit = FALSE, q = 0.99, TESTFUN = function(x1, x2, ...){ wilcox.test(x1, x2)$p.value }, ...){
+
+  statdf <- get_all_comparisons(df, x, y, as_list = FALSE, na.omit = na.omit)
+  colnames(statdf) <- c("x","xend")
+
+  statdf$p <- as.data.frame(t(statdf)) |> sapply(function(groups){
+    g1 <- df[[y]][df[[x]] == groups[1]]
+    g2 <- df[[y]][df[[x]] == groups[2]]
+    if (all(is.na(g1)) | all(is.na(g2))) return(NA)
+    TESTFUN(g1, g2)
+  })
+  statdf$padj <- p.adjust(statdf$p, method = "BH")
+  statdf$comparison <- paste0(statdf$xend, "_vs_", statdf$x)
+
+  xall <- unique(union(statdf$x, statdf$xend)) |> sort()
+  if (is.null(levels(df[[x]]))){
+    xlev <- setNames(as.numeric(factor(xall, ordered = TRUE, levels = xall)), xall)
+  } else {
+    statdf$x <- factor(statdf$x, levels = levels(df[[x]]), exclude = "", ordered = is.ordered(df[[x]]))
+    statdf$xend <- factor(statdf$xend, levels = levels(df[[x]]), exclude = "", ordered = is.ordered(df[[x]]))
+    xlev <- setNames(as.numeric(factor(xall, ordered = TRUE, levels = levels(df[[x]]))), xall)
+  }
+  statdf$xmean <- rowMeans(cbind(xlev[as.character(statdf$x)], xlev[as.character(statdf$xend)]))
+
+
+  statdf <- subset(statdf, padj <= padj_thres)
+
+  if (!is.null(max_add) & nrow(statdf) > 1){
+    statdf <- statdf[1:min(nrow(statdf), max_add),]
+  }
+
+  statdf$yoffset <- rank(1 - statdf$p, ties.method = "random") |> scale(center = FALSE) |> as.numeric()
+  statdf$yoffset <- (statdf$yoffset - min(statdf$yoffset))
+  statdf$yoffset <- statdf$yoffset/max(statdf$yoffset) * (length(statdf$yoffset) - 1)
+  if (nrow(statdf) == 1){
+    statdf$yoffset <- 0
+  }
+
+  ymax2 <- max(quantile(df[[y]], q, na.rm = TRUE), na.rm = TRUE)
+  if (is.null(ymax)){
+    ymax <- ymax2
+  }
+
+
+  statdf$yoffset <- ymax*spacing*statdf$yoffset
+  statdf$y <- ymax2 + statdf$yoffset
+  statdf$text <- format.pval(statdf$padj, digits = 3, eps = 10^-9)
+
+
+  statdf
+}
+
+
+
+
+
+

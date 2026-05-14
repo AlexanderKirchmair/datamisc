@@ -152,6 +152,27 @@ download <- function(file, url, overwrite=FALSE, method = "wget", ...){
 
 
 
+
+#' Get non-unique elements
+#'
+#' @param x vector
+#' @param index return as index
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' duplicates(c("A", "A", "B"))
+duplicates <- function(x, index=FALSE){
+  x_dup <- x[duplicated(x)] |> unique()
+  if (index){
+    x_dup <- x %in% x_dup
+  }
+  x_dup
+}
+
+
+
 #' Get class of a quoted object
 #'
 #' @param x
@@ -1445,7 +1466,9 @@ getGEOdata <- function(ID = "GSE222693", geodir = "~/myScratch/GEO", fetch_files
     warning("Warning: Directory not empty!")
   }
 
+
   geo <- GEOquery::getGEO(ID, destdir = subdir, ...)
+  dir.create(file.path(subdir, "supp"), showWarnings = FALSE)
   supp <- GEOquery::getGEOSuppFiles(ID, makeDirectory = FALSE, baseDir = file.path(subdir, "supp"), fetch_files = fetch_files)
 
   if (fetch_files == FALSE){

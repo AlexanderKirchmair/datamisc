@@ -282,11 +282,14 @@ getPaletteer <- function(length = NULL, continuous = TRUE, discrete = TRUE){
 #' @param fontfamily Base font family
 #' @param lwd Base linewidth
 #' @param color Base color
+#' @param legend.ticks.color Legend frame/ticks color
 #' @param grid.color Grid color (no grid if NULL)
 #' @param title.face Title face (plain/bold/...)
 #' @param title.cex Title size factor
 #' @param axis.title.cex Axis title size factor
 #' @param axis.text.cex Axis text size factor
+#' @param rot.x Rotate x-axis text
+#' @param rot.y Rotate y-axis text
 #' @param grid.cex Grid linewidth size factor
 #' @param ... other parameters passed to theme(...)
 #' @inheritParams ggplot2::theme_bw
@@ -296,10 +299,24 @@ getPaletteer <- function(length = NULL, continuous = TRUE, discrete = TRUE){
 #' @examples
 #' ggplot(iris, aes(Sepal.Length, Petal.Length)) + geom_point() + ggtitle("Iris") + theme_basic()
 #' ggplot(iris, aes(Sepal.Length, Petal.Length, color = Species)) + geom_point() + ggtitle("Iris") + theme_basic(grid.color = "grey70")
-theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "black", grid.color = NULL,
-                        title.face = "bold", title.cex = 1, axis.title.cex = 1, axis.text.cex = 0.8, grid.cex = 0.7, ...){
+theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "black", legend.ticks.color = "black", grid.color = NULL,
+                        title.face = "bold", title.cex = 1, axis.title.cex = 1, axis.text.cex = 0.8, rot.x = FALSE, rot.y = FALSE, grid.cex = 0.7, ...){
 
   if (is.null(lwd)) lwd <- fontsize/22
+
+  hjust.x <- vjust.x <- angle.x <- NULL
+  if (rot.x){
+    hjust.x <- 1
+    vjust.x <- 0.5
+    angle.x <- 90
+  }
+
+  hjust.y <- vjust.y <- angle.y <- NULL
+  if (rot.y){
+    hjust.y <- 0.5
+    vjust.y <- 1
+    angle.y <- 90
+  }
 
   th1 <- ggplot2::theme_bw(base_size = fontsize,
                            base_family = fontfamily,
@@ -311,11 +328,16 @@ theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "bla
                         text = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
                         title = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
                         axis.text = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.text.cex)),
+                        axis.text.x = ggplot2::element_text(colour = color, hjust = hjust.x, vjust = vjust.x, angle = angle.x, size = ggplot2::rel(axis.text.cex)),
+                        axis.text.y = ggplot2::element_text(colour = color, hjust = hjust.y, vjust = vjust.y, angle = angle.y, size = ggplot2::rel(axis.text.cex)),
                         axis.title = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.title.cex)),
                         axis.ticks = ggplot2::element_line(colour = color),
                         axis.line = ggplot2::element_line(colour = color, lineend = "square"),
                         legend.text = ggplot2::element_text(colour = color),
                         legend.title = ggplot2::element_text(colour = color, hjust = 0),
+                        legend.background = ggplot2::element_blank(),
+                        legend.ticks = ggplot2::element_line(linewidth = lwd/2, colour = legend.ticks.color),
+                        legend.frame = ggplot2::element_rect(linewidth = lwd/2, colour = legend.ticks.color),
                         panel.border = ggplot2::element_blank(),
                         panel.grid = ggplot2::element_blank(),
                         plot.title = ggplot2::element_text(colour = color, face = title.face, hjust = 0.5, size = ggplot2::rel(title.cex)),
@@ -332,10 +354,6 @@ theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "bla
   th
 
 }
-
-
-
-
 
 
 

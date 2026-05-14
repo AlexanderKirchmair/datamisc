@@ -9,11 +9,14 @@ theme_basic(
   fontfamily = "",
   lwd = NULL,
   color = "black",
+  legend.ticks.color = "black",
   grid.color = NULL,
   title.face = "bold",
   title.cex = 1,
   axis.title.cex = 1,
   axis.text.cex = 0.8,
+  rot.x = FALSE,
+  rot.y = FALSE,
   grid.cex = 0.7,
   ...
 )
@@ -27,6 +30,8 @@ theme_basic(
 
 \item{color}{Base color}
 
+\item{legend.ticks.color}{Legend frame/ticks color}
+
 \item{grid.color}{Grid color (no grid if NULL)}
 
 \item{title.face}{Title face (plain/bold/...)}
@@ -36,6 +41,10 @@ theme_basic(
 \item{axis.title.cex}{Axis title size factor}
 
 \item{axis.text.cex}{Axis text size factor}
+
+\item{rot.x}{Rotate x-axis text}
+
+\item{rot.y}{Rotate y-axis text}
 
 \item{grid.cex}{Grid linewidth size factor}
 
