@@ -13,6 +13,7 @@ ggpairwise(
   label_offset = 0.02,
   linewidth = NULL,
   linetype = "solid",
+  q = 0.99,
   y_at_zero = TRUE,
   ymax = NULL,
   na.omit = FALSE,

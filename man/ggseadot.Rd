@@ -6,21 +6,53 @@
 \usage{
 ggseadot(
   data,
-  x = -log10(padj),
+  x = NES,
   y = term,
-  color = NES,
-  n = 30,
+  colour = -log10(padj),
+  size = n_enriched_genes,
   title = NULL,
-  fontsize = 16,
-  x_thres = 0.05,
-  cex_labels = 0.6,
-  lwd = 0.4,
-  ...
+  sort = TRUE,
+  top_n_up = 15,
+  top_n_down = 15,
+  xmin = NULL,
+  xmax = NULL,
+  fontsize = 12,
+  size_limits = c(0, NA),
+  size_range = c(0.01, 5),
+  maxchar = NULL,
+  margins = ggplot2::margin(t = 8, r = 8, l = 8, b = 8)
+)
+
+ggseadot(
+  data,
+  x = NES,
+  y = term,
+  colour = -log10(padj),
+  size = n_enriched_genes,
+  title = NULL,
+  sort = TRUE,
+  top_n_up = 15,
+  top_n_down = 15,
+  xmin = NULL,
+  xmax = NULL,
+  fontsize = 12,
+  size_limits = c(0, NA),
+  size_range = c(0.01, 5),
+  maxchar = NULL,
+  margins = ggplot2::margin(t = 8, r = 8, l = 8, b = 8)
 )
 }
 \arguments{
+\item{margins}{}
+
 \item{...}{}
 }
 \description{
 GSEA dotplot
+
+Dotplot of GSEA results
+}
+\examples{
+data.frame(term=rnames(100), NES=runif(100,-3,3), padj=runif(100)) |> ggseadot(size=NULL)
+data.frame(term=rnames(100), NES=runif(100,-3,3), padj=runif(100)) |> ggseadot(x=log10(padj), colour=NES, size=NULL)
 }

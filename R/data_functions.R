@@ -483,6 +483,19 @@ rdataframe <- function(nrow = 5, ncol = 5){
 
 
 
+#' Generate random names
+#'
+#' @param n
+#' @param length
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+rnames <- function(n, length=6){
+  x <- sapply(1:n, function(...) paste0(sample(letters, length, replace = TRUE), collapse = ""))
+  dedupl(x)
+}
 
 
 

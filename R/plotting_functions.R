@@ -1283,7 +1283,7 @@ ggboxplot <- function(df, x, y, colour="grey30", ymax=NULL, point_size=2.5, font
   if (!is.null(ymax)){
     if (startsWith(as.character(ymax), "q")){
       q <- sub("q", "", ymax) |> as.numeric()
-      ymax <- quantile(df[[y]], q, na.rm = TRUE)
+      ymax <- qlim(df[[y]], q, na.rm = TRUE)
     }
     gg <- gg + scale_y_continuous(limits = c(ifelse(y_at_zero, 0, NA), ymax), expand = ggplot2::expansion(mult = c(0,0)), oob = scales::censor)
   } else {
@@ -1305,6 +1305,7 @@ ggboxplot <- function(df, x, y, colour="grey30", ymax=NULL, point_size=2.5, font
 #' @param label_offset
 #' @param linewidth
 #' @param linetype
+#' @param q
 #' @param y_at_zero
 #' @param ymax
 #' @param na.omit
@@ -1317,7 +1318,7 @@ ggboxplot <- function(df, x, y, colour="grey30", ymax=NULL, point_size=2.5, font
 #'
 #' @examples
 #' iris |> ggboxplot(Species, Sepal.Length, colour=Petal.Length) |> ggpairwise()
-ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=NULL, label_offset=0.02, linewidth=NULL, linetype="solid", y_at_zero=TRUE, ymax=NULL, na.omit=FALSE, test=c("wilcox.test", "t.test"), TESTFUN=NULL, ...){
+ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=NULL, label_offset=0.02, linewidth=NULL, linetype="solid", q = 0.99, ymax=NULL, na.omit=FALSE, test=c("wilcox.test", "t.test"), TESTFUN=NULL, ...){
   x <- gg$mapping[["x"]] |> rlang::as_name()
   y <- gg$mapping[["y"]] |> rlang::as_name()
 
@@ -1335,7 +1336,8 @@ ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=N
   if (is.null(spacing)){
     spacing <- fontsize/200
   }
-  statdf <- get_pairwise_stats(gg$data, x, y, padj_thres = padj_thres, spacing = spacing, max_add = max_add, ymax=ymax, na.omit = na.omit, TESTFUN = TESTFUN, ...)
+
+  statdf <- get_pairwise_stats(gg$data, x, y, padj_thres = padj_thres, spacing = spacing, q = q, max_add = max_add, ymax=ymax, na.omit = na.omit, TESTFUN = TESTFUN, ...)
 
   if (nrow(statdf) < 1) return(gg)
 
@@ -1344,15 +1346,19 @@ ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=N
   }
   ar <- grid::arrow(90, length = grid::unit(0.01,"npc"), ends = "both")
 
+  build <- ggplot_build(gg)
+  yrange <- build$layout$panel_params[[1]]$y.range
+  ymin <- yrange[1]
+  if (ymin > 0){
+    ymin <- ymin * 0.9
+  } else {
+    ymin <- ymin * 1.1
+  }
+
   if (is.null(ymax)){
     ymax <- max(statdf$y, na.rm = TRUE) * 1.1
   }
 
-  if (!is.null(gg@scales$scales[[1]]$limits[1])){
-    ymin <- gg@scales$scales[[1]]$limits[1]
-  } else {
-    ymin <- min(gg$data[[y]], na.rm = TRUE)
-  }
   ydist <- ymax - ymin
 
   gg <- gg + geom_segment(statdf, mapping = aes_string(x = "x", xend = "xend", y = "y", yend = "y"),
@@ -1361,10 +1367,10 @@ ggpairwise <- function(gg, padj_thres=0.05, fontsize=10, max_add=NULL, spacing=N
   gg <- gg + geom_text(data = statdf, mapping = aes(x = xmean, y = y, label = text), hjust = 0.5,
                        nudge_y = ydist*label_offset, inherit.aes = FALSE, size = fontsize/ggplot2::.pt)
 
-  gg <- gg + scale_y_continuous(limits = c(ifelse(ymin == 0, 0, NA), ymax), expand = ggplot2::expansion(mult = c(0,0)), oob = scales::censor)
+  # gg <- gg + scale_y_continuous(limits = c(ifelse(ymin == 0, 0, NA), ymax), expand = ggplot2::expansion(mult = c(0,0)), oob = scales::censor)
+  gg <- gg + coord_cartesian(ylim = c(ymin, ymax), clip = "off")
   gg
 }
-
 
 get_all_comparisons <- function(df, x, y, as_list=FALSE, na.omit = FALSE){
 
@@ -1424,7 +1430,8 @@ get_pairwise_stats <- function(df, x, y, padj_thres = 0.05, spacing = 0.05, ymax
     statdf$yoffset <- 0
   }
 
-  ymax2 <- max(quantile(df[[y]], q, na.rm = TRUE), na.rm = TRUE)
+
+  ymax2 <- max(qlim(df[[y]], q, na.rm = TRUE), na.rm = TRUE)
   if (is.null(ymax)){
     ymax <- ymax2
   }
@@ -1437,6 +1444,120 @@ get_pairwise_stats <- function(df, x, y, padj_thres = 0.05, spacing = 0.05, ymax
 
   statdf
 }
+
+
+qlim <- function(x, q, ...){
+  if (q > 1){
+    res <- quantile(x, 1, ...) * q
+  } else {
+    res <- quantile(x, q, ...)
+  }
+  res
+}
+
+
+
+#' Dotplot of GSEA results
+#'
+#' @param data
+#' @param x
+#' @param y
+#' @param colour
+#' @param size
+#' @param title
+#' @param sort
+#' @param top_n_up
+#' @param top_n_down
+#' @param xmin
+#' @param xmax
+#' @param fontsize
+#' @param size_limits
+#' @param size_range
+#' @param maxchar
+#' @param margins
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' data.frame(term=rnames(100), NES=runif(100,-3,3), padj=runif(100)) |> ggseadot(size=NULL)
+#' data.frame(term=rnames(100), NES=runif(100,-3,3), padj=runif(100)) |> ggseadot(x=log10(padj), colour=NES, size=NULL)
+ggseadot <- function(data, x=NES, y=term, colour=-log10(padj), size=n_enriched_genes, title=NULL, sort=TRUE, top_n_up=15, top_n_down=15, xmin=NULL, xmax=NULL, fontsize=12, size_limits=c(0,NA), size_range=c(0.01, 5), maxchar=NULL, margins=ggplot2::margin(t = 8, r = 8, l = 8, b = 8)){
+
+  x <- rlang::enquo(x)
+  y <- rlang::enquo(y)
+  colour <- rlang::enquo(colour)
+  size <- rlang::enquo(size)
+
+  # prepare data
+  if (sort){
+    data <- dplyr::arrange(data, desc(!!x))
+  } else {
+    colorcat("Warning: Using presorted data!")
+  }
+  data <- rbind(dplyr::slice_head(data, n = top_n_up), dplyr::slice_tail(data, n = top_n_down))
+
+  if (!is.null(maxchar)){
+    data[[rlang::as_name(y)]] <- as.character(data[[rlang::as_name(y)]])
+    data[[rlang::as_name(y)]] <- cutstr(data[[rlang::as_name(y)]], maxchar = maxchar)
+  }
+  data[[rlang::as_name(y)]] <- factor(data[[rlang::as_name(y)]], levels = rev(data[[rlang::as_name(y)]]), ordered = TRUE)
+  y_scale <- scale_y_discrete(limits = levels(data[[rlang::as_name(y)]]), drop = FALSE, position = "left")
+  et <- element_text(size = fontsize)
+  th <- theme(text = et, legend.title = et, axis.title = et,  line = element_line(linewidth = 0.5, lineend = "square"), axis.ticks = element_line(linewidth = 0.5, lineend = "butt"))
+
+  col_vec <- dplyr::transmute(data, .val = !!colour) |> dplyr::pull(.val)
+  if (is.numeric(col_vec)){
+    col_max <- max(abs(col_vec))
+    if (min(col_vec) < 0){
+      col_limits <- c(-col_max, col_max)
+      col_scale <- scale_color_gradient2(limits=col_limits, low = "blue", mid = "grey95", high = "red", midpoint = 0, na.value = "grey30", oob = scales::squish)
+    } else {
+      col_limits <- c(0, col_max)
+      col_scale <- scale_color_gradient(limits=col_limits, low = "grey95", high = "red", na.value = "grey30", oob = scales::squish)
+    }
+  } else {
+    if (is.null(levels(col_vec))){
+      # convert to factor
+      col_name <- rlang::as_name(colour)
+      data <- data |> dplyr::mutate(!!col_name := factor(.data[[col_name]], levels = unique(.data[[col_name]])))
+    }
+    col_vec <- dplyr::transmute(data, .val = !!colour) |> dplyr::pull(.val)
+    col_scale <- scale_color_discrete(limits=levels(col_vec), breaks=levels(col_vec), drop=FALSE)
+  }
+
+  if (is.null(xmin)){
+    # single plot
+    gg <- ggplot(data, aes(x = !!x, y = !!y, colour = !!colour, size = !!size)) + geom_point(show.legend = TRUE) + ggtitle(title)
+    size_scale <- scale_size_continuous(range = size_range)
+    gg <- gg + size_scale + col_scale + y_scale + th + ylab(NULL) + coord_cartesian(clip = "off")
+
+  } else {
+    # split x-axis in two parts
+    if (is.null(xmax)){
+      x_vec <- dplyr::transmute(data, .val = !!x) |> dplyr::pull(.val)
+      xmax <- max(abs(x_vec))
+    }
+    ggs <- list(ggplot(dplyr::filter(data, !!x <= 0), aes(x = !!x, y = !!y, colour = !!colour, size = !!size)) + geom_point(show.legend = TRUE) + xlim(-xmax,-xmin) + ggtitle(title),
+                ggplot(dplyr::filter(data, !!x  > 0), aes(x = !!x, y = !!y, colour = !!colour, size = !!size)) + geom_point(show.legend = TRUE) + xlim(xmin,xmax))
+
+    # set common limits
+    if (is.na(size_limits[2])){
+      size_vec <- dplyr::transmute(data, .val = !!size) |> dplyr::pull(.val)
+      size_limits[2] <- ceiling(max(size_vec))
+    }
+    size_scale <- scale_size_continuous(limits = size_limits, range = size_range)
+
+    ggs <- lapply(ggs, function(gg){
+      gg + y_scale + size_scale + col_scale + th + theme(plot.margin = margins) + coord_cartesian(clip = "off") + ylab(NULL)
+    })
+    gg <- (wrap_plots(ggs, nrow = 1, axes = "collect", axis_titles="collect", guides = "collect") & ylab(""))
+  }
+
+  gg
+}
+
+
 
 
 

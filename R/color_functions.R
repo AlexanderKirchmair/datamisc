@@ -304,20 +304,6 @@ theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "bla
 
   if (is.null(lwd)) lwd <- fontsize/22
 
-  hjust.x <- vjust.x <- angle.x <- NULL
-  if (rot.x){
-    hjust.x <- 1
-    vjust.x <- 0.5
-    angle.x <- 90
-  }
-
-  hjust.y <- vjust.y <- angle.y <- NULL
-  if (rot.y){
-    hjust.y <- 0.5
-    vjust.y <- 1
-    angle.y <- 90
-  }
-
   th1 <- ggplot2::theme_bw(base_size = fontsize,
                            base_family = fontfamily,
                            base_line_size = lwd,
@@ -328,8 +314,6 @@ theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "bla
                         text = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
                         title = ggplot2::element_text(colour = color, size = fontsize, family = fontfamily),
                         axis.text = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.text.cex)),
-                        axis.text.x = ggplot2::element_text(colour = color, hjust = hjust.x, vjust = vjust.x, angle = angle.x, size = ggplot2::rel(axis.text.cex)),
-                        axis.text.y = ggplot2::element_text(colour = color, hjust = hjust.y, vjust = vjust.y, angle = angle.y, size = ggplot2::rel(axis.text.cex)),
                         axis.title = ggplot2::element_text(colour = color, size = ggplot2::rel(axis.title.cex)),
                         axis.ticks = ggplot2::element_line(colour = color),
                         axis.line = ggplot2::element_line(colour = color, lineend = "square"),
@@ -348,6 +332,14 @@ theme_basic <- function(fontsize = 18, fontfamily = "", lwd = NULL, color = "bla
 
   if (!is.null(grid.color)){
     th2 <- ggplot2::`%+replace%`(th2, ggplot2::theme(panel.grid.major = ggplot2::element_line(linewidth = ggplot2::rel(grid.cex), colour = grid.color)))
+  }
+
+  if (rot.x){
+    th2 <- ggplot2::`%+replace%`(th2, ggplot2::theme(axis.text.x = ggplot2::element_text(hjust = 1, vjust = 0.5, angle = 90)))
+  }
+
+  if (rot.y){
+    th2 <- ggplot2::`%+replace%`(th2, ggplot2::theme(axis.text.y = ggplot2::element_text(hjust = 0.5, vjust = 1, angle = 90)))
   }
 
   th <- ggplot2::`%+replace%`(th1, th2)
