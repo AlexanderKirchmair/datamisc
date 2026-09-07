@@ -46,7 +46,7 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                       ptres = 0.05, clip = FALSE, symlim = TRUE, expand = c(0,0), nbreaks_x = 7, nbreaks_y = 7,
                       xlim = NULL, ylim = NULL,
                       color_up = "#eb9d0e", color_down = "#146bc7", color_nonsig = "#4d4d4d",
-                      label_up = "up", label_down = "down", label_nonsig = "not signif.", autolabel = NULL, show_nonsig = TRUE,
+                      label_up = "up", label_down = "down", label_nonsig = "not signif.", autolabel = NULL, show_nonsig_labels = FALSE,
                       segment.alpha = 0.6, max.time = 30, max.iter = 10^6, show_grid = TRUE,
                       title = NULL, title_size = NULL, point_size = 2, scale_size = FALSE, axis_size = NULL, leg_size = NULL, leg_key_size=4,
                       lwd = 0.8, at_zero = FALSE, clip_frame = "off", ...){
@@ -124,7 +124,9 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
   data$label[!data$do_label] <- ""
   data$do_label[data$label == ""] <- FALSE
 
-  data$do_label[data$class == label_nonsig] <- FALSE
+  if (!show_nonsig_labels){
+    data$do_label[data$class == label_nonsig] <- FALSE
+  }
 
   # COLORS
 
@@ -137,8 +139,8 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
   # LIMITS
 
-  sigdata <- subset(data, class != label_nonsig)
-  xylimits <- list(xlim = getLimits(sigdata$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(sigdata$ytmp, clip = clip, expand = expand[2], negative = FALSE))
+  # sigdata <- subset(data, class != label_nonsig)
+  xylimits <- list(xlim = getLimits(data$xtmp, clip = clip, expand = expand[1]), ylim = getLimits(data$ytmp, clip = clip, expand = expand[2], negative = FALSE))
   if (symlim == TRUE){ xylimits$xlim <- c("min" = -max(abs(xylimits$xlim)), "max" = max(abs(xylimits$xlim))) }
   data$xorg <- data$x
   data$yorg <- data$y
@@ -253,11 +255,7 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
 
   if (color_user_def){
     color_vals <-  setNames(c(color_up, color_down, color_nonsig), c(label_up, label_down, label_nonsig))
-    if (show_nonsig){
-      color_breaks <- c(label_up, label_nonsig, label_down)
-    } else {
-      color_breaks <- c(label_up, label_down)
-    }
+    color_breaks <- c(label_up, label_nonsig, label_down)
     gg %<>% + ggplot2::scale_colour_manual(values = color_vals, breaks = color_breaks)
     gg %<>% + ggplot2::labs(title = title, y = paste0("-log10 ", rlang::as_name(y)), x = rlang::as_name(x), color = NULL)
   } else {
@@ -280,8 +278,8 @@ ggvolcano <- function(data, x = NULL, y = NULL, color = NULL, label = NULL, shap
                                      fontface = labface,
                             size = lab_size/ggplot2:::.pt,
                             seed = seed,
-                            xlim = xylimits$xlim - c(-diff(xylimits$xlim), diff(xylimits$xlim))*0.18,
-                            ylim = xylimits$ylim - c(-diff(xylimits$ylim)*0.15, diff(xylimits$ylim)*0.02),
+                            xlim = xylimits$xlim - c(-diff(xylimits$xlim), diff(xylimits$xlim))*0.1,
+                            ylim = xylimits$ylim - c(-diff(xylimits$ylim)*0.1, diff(xylimits$ylim)*0.02),
                             force = repel, force_pull = attract,  max.overlaps = max_overlaps,
                             point.padding = 0.35, box.padding = box.padding, max.time = max.time, max.iter = max.iter,
                             min.segment.length = 0, vjust = 0, color = rgb(0.0,0.0,0.0), segment.alpha = segment.alpha)

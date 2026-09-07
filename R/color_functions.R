@@ -136,15 +136,18 @@ getColors <- function(dataframe){
   dataframe.discrete <- dataframe[, sapply(dataframe, is.factor) | sapply(dataframe, is.character), drop=FALSE]
   n <- sapply(dataframe.discrete, function(x) length(unique(x)))
 
-  colors <- genPalettes(n = NULL, length_each = n)
+  if (length(n) > 0){
+    colors <- genPalettes(n = NULL, length_each = n)
 
-  colors <- lapply(seq_along(colors), function(i){
-    tmp <- colors[[i]]
-    names(tmp) <- unique(dataframe.discrete[[i]])
-    tmp
-  })
+    colors <- lapply(seq_along(colors), function(i){
+      tmp <- colors[[i]]
+      names(tmp) <- unique(dataframe.discrete[[i]])
+      tmp
+    })
 
-  names(colors) <- colnames(dataframe.discrete)
+    names(colors) <- colnames(dataframe.discrete)
+
+  }
 
   colors
 }
