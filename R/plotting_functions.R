@@ -670,7 +670,7 @@ cxheatmap <- function(data, rowdf = NULL, coldf = NULL, scale = FALSE, cluster_r
   }
 
   colors <- c(colors, addcol)
-  colors <- lapply(colors, function(tmp) tmp[!is.na(tmp) & !is.na(names(tmp))])
+  # colors <- lapply(colors, function(tmp) tmp[!is.na(tmp) & !is.na(names(tmp))])
 
   # cell border
   if (is.null(border)){
